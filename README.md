@@ -168,16 +168,13 @@ mvn test allure:report
 | ADRs (decisões de arquitetura) | [`/docs/diagramas`](./docs/diagramas) |
 | Collection Postman (278 requests) | [`/postman`](./postman) |
 | Requisições HTTP (VS Code) | [`api-requests.http`](./api-requests.http) |
+| BrainStorming | Miro link abaixo |
+| Domain Storytelling | Miro link abaixo |
+| Diagrama de Linguagem Ubíqua | Miro link abaixo |
+| EventStorming | Miro link abaixo |
+| Diagrama de Contexto Limitado | Miro link abaixo |
 
-
-| Os diagramas a seguir foram desenvolvidos no miro no link abaixo|
-| BrainStorming |
-| Domain Storytelling |
-| Diagrama de Linguagem Ubíqua |
-| EventStorming |
-| Diagrama de Contexto Limitado |
-
-| https://miro.com/app/board/uXjVHc0alo8=/?share_link_id=611826904943 |
+https://miro.com/app/board/uXjVHc0alo8=/?share_link_id=611826904943
 
 ---
 
