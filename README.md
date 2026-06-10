@@ -164,10 +164,12 @@ mvn test allure:report
 
 | Recurso | Localização |
 |---|---|
-| Diagramas DDD (PlantUML) | [`/docs`](./docs) |
-| ADRs (decisões de arquitetura) | [`/docs/diagramas`](./docs/diagramas) |
+| Diagramas DDD (PlantUML) | [`/docs`](./docs/diagramas) |
+| ADRs (decisões de arquitetura) | [`/docs/diagramas`](./docs/ADRS) |
 | Collection Postman (278 requests) | [`/postman`](./postman) |
 | Requisições HTTP (VS Code) | [`api-requests.http`](./api-requests.http) |
+| Requisitos Funcionais e Não Funcionais | [`/docs`](./docs/requisitos) |
+| Relatório de Vulnerabilidades OWASP | [`/docs`](./docs/ReportOWASP) |
 | BrainStorming | Miro link abaixo |
 | Domain Storytelling | Miro link abaixo |
 | Diagrama de Linguagem Ubíqua | Miro link abaixo |
