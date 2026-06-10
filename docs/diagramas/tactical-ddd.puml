@@ -1,0 +1,541 @@
+@startuml bounded-contexts-internos
+title Bounded Contexts — Estrutura Interna (Visão Tática DDD)
+
+skinparam packageStyle rectangle
+skinparam classFontSize 11
+skinparam classAttributeFontSize 10
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #888888
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Arial
+skinparam packageFontSize 12
+skinparam packageFontStyle bold
+
+hide empty members
+
+' ─────────────────────────────────────────────────────────────────────────────
+' BC ATENDIMENTO — Core Subdomain
+' ─────────────────────────────────────────────────────────────────────────────
+package "BC Atendimento  <<Core Subdomain>>" #D5E8D4 {
+
+  class Cliente <<Aggregate Root>> {
+    - id : Long
+    - documento : CpfCnpj
+    - nome : String
+    - telefone : String
+    - email : String
+    - cep : String
+    - logradouro : String
+    - bairro : String
+    - cidade : String
+    - uf : String
+    ..
+    + atualizar(nome : String, telefone : String, email : String)
+    + preencherEndereco(cep : String, logradouro : String, bairro : String, cidade : String, uf : String)
+  }
+
+  class Veiculo <<Entity>> {
+    - id : Long
+    - placa : Placa
+    - marca : String
+    - modelo : String
+    - ano : int
+    - cliente : Cliente
+    ..
+    + atualizar(marca : String, modelo : String, ano : int)
+  }
+
+  class CpfCnpj <<Value Object>> {
+    - valor : String
+    - tipo : TipoDocumento
+    ..
+    + CpfCnpj(valor : String)
+  }
+
+  class Placa <<Value Object>> {
+    - valor : String
+    ..
+    + Placa(valor : String)
+    + formatado() : String
+  }
+
+  interface ClienteRepository <<Port>> {
+    + salvar(cliente : Cliente) : Cliente
+    + buscarPorId(id : Long) : Optional<Cliente>
+    + buscarPorDocumento(documento : String) : Optional<Cliente>
+    + listarTodos() : List<Cliente>
+    + excluir(id : Long)
+    + existePorDocumento(documento : String) : boolean
+  }
+
+  interface VeiculoRepository <<Port>> {
+    + salvar(veiculo : Veiculo) : Veiculo
+    + buscarPorId(id : Long) : Optional<Veiculo>
+    + buscarPorPlaca(placa : String) : Optional<Veiculo>
+    + listarPorCliente(clienteId : Long) : List<Veiculo>
+    + listarTodos() : List<Veiculo>
+    + excluir(id : Long)
+  }
+
+  Cliente *-- CpfCnpj : <<embeds>>
+  Veiculo *-- Placa    : <<embeds>>
+  Veiculo --> Cliente  : pertence a (ManyToOne)
+
+  note bottom of Cliente
+    Consulta CEP via ViaCepClient <<ACL>>
+    (infrastructure/client/)
+    ← Traduz resposta do ViaCEP <<OHS>>
+    para o modelo de domínio
+  end note
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' BC ORDEM DE SERVIÇO — Core Subdomain
+' ─────────────────────────────────────────────────────────────────────────────
+package "BC Ordem de Serviço  <<Core Subdomain>>" #DAE8FC {
+
+
+  class OrdemDeServico <<Aggregate Root>> {
+    - id : Long
+    - numero : String
+    - status : StatusOS
+    - dataCriacao : LocalDateTime
+    - dataFinalizacao : LocalDateTime
+    - atendenteNome : String
+    - cliente : Cliente
+    - veiculo : Veiculo
+    - itens : List<ItemOS>
+    ..
+    + static criar(cliente : Cliente, veiculo : Veiculo) : OrdemDeServico
+    + atribuirNumero(numero : String)
+    + atribuirAtendente(atendenteNome : String)
+    + adicionarItem(item : ItemOS)
+    + calcularValorTotal() : BigDecimal
+    + avancarParaDiagnostico()
+    + aguardarAprovacao()
+    + aprovarEIniciarExecucao()
+    + aguardarRetirada()
+    + finalizar()
+    + entregar()
+    + cancelar()
+  }
+
+  class ItemOS <<Entity>> {
+    - id : Long
+    - tipo : TipoItem
+    - descricao : String
+    - quantidade : int
+    - valorUnitario : BigDecimal
+    - referenciaId : Long
+    - estoqueReduzido : boolean
+    - ordemDeServico : OrdemDeServico
+    ..
+    + calcularSubtotal() : BigDecimal
+    + marcarEstoqueReduzido()
+    + associarOrdem(ordem : OrdemDeServico)
+  }
+
+  enum StatusOS {
+     RECEBIDA
+     EM_DIAGNOSTICO
+     AGUARDANDO_APROVACAO
+     EM_EXECUCAO
+     FINALIZADA
+     AGUARDANDO_RETIRADA
+     ENTREGUE
+     CANCELADA
+  }
+
+  enum TipoItem {
+    SERVICO
+    PECA
+  }
+
+  interface OrdemDeServicoRepository <<Port>> {
+    + salvar(ordemDeServico : OrdemDeServico) : OrdemDeServico
+    + buscarPorId(id : Long) : Optional<OrdemDeServico>
+    + buscarPorNumero(numero : String) : Optional<OrdemDeServico>
+    + listarTodas() : List<OrdemDeServico>
+    + listarPorCliente(clienteId : Long) : List<OrdemDeServico>
+    + listarPorStatus(status : StatusOS) : List<OrdemDeServico>
+    + listarPorVeiculo(veiculoId : Long) : List<OrdemDeServico>
+  }
+
+  OrdemDeServico *-- ItemOS      : <<owns>>  1..*
+  OrdemDeServico --> StatusOS    : usa
+  ItemOS         --> TipoItem    : usa
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' BC EXECUÇÃO — Core Subdomain
+' ─────────────────────────────────────────────────────────────────────────────
+package "BC Execução  <<Core Subdomain>>" #FFE6CC {
+
+
+  class Execucao <<Aggregate Root>> {
+    - id : Long
+    - ordemDeServicoId : Long
+    - status : StatusExecucao
+    - diagnostico : Diagnostico
+    - periodoExecucao : PeriodoExecucao
+    - mecanicoNome : String
+    ..
+    + static criar(ordemDeServicoId : Long) : Execucao
+    + iniciarDiagnostico(mecanicoNome : String)
+    + iniciarServico()
+    + finalizarServico()
+  }
+
+  class Diagnostico <<Entity>> {
+    - id : Long
+    - descricaoProblema : String
+    - dataDiagnostico : LocalDateTime
+    - status : StatusDiagnostico
+    ..
+    + iniciar()
+    + identificarProblema(descricao : String)
+    + concluir()
+  }
+
+  class PeriodoExecucao <<Value Object>> {
+    - inicio : LocalDateTime
+    - fim : LocalDateTime
+    ..
+    + PeriodoExecucao(inicio : LocalDateTime)
+    + finalizarEm(fim : LocalDateTime)
+    + calcularDuracao() : Duration
+    + isFinalizado() : boolean
+  }
+
+  enum StatusExecucao {
+     AGUARDANDO
+    EM_DIAGNOSTICO
+     EM_ANDAMENTO
+     SERVICO_FINALIZADO
+     CANCELADA
+  }
+
+  enum StatusDiagnostico {
+    PENDENTE
+    EM_ANDAMENTO
+    CONCLUIDO
+  }
+
+  interface ExecucaoRepository <<Port>> {
+    + salvar(execucao : Execucao) : Execucao
+    + buscarPorId(id : Long) : Optional<Execucao>
+    + buscarPorOrdemDeServico(ordemDeServicoId : Long) : Optional<Execucao>
+  }
+
+  Execucao *-- Diagnostico      : <<owns>> (OneToOne)
+  Execucao *-- PeriodoExecucao  : <<embeds>>
+  Execucao  --> StatusExecucao  : usa
+  Diagnostico --> StatusDiagnostico : usa
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' BC ORÇAMENTO — Core Subdomain
+' ─────────────────────────────────────────────────────────────────────────────
+package "BC Orçamento  <<Core Subdomain>>" #FFF2CC {
+
+
+  class Orcamento <<Aggregate Root>> {
+    - id : Long
+    - ordemDeServicoId : Long
+    - status : StatusOrcamento
+    - valorTotal : BigDecimal
+    - dataCriacao : LocalDateTime
+    - dataValidade : LocalDateTime
+    - dataAprovacao : LocalDateTime
+    ..
+    + static gerar(ordemDeServicoId : Long, valorTotal : BigDecimal) : Orcamento
+    + enviar()
+    + aprovar()
+    + rejeitar()
+  }
+
+  enum StatusOrcamento {
+     PENDENTE
+     ENVIADO
+     APROVADO
+     REJEITADO
+     EXPIRADO
+  }
+
+  interface OrcamentoRepository <<Port>> {
+    + salvar(orcamento : Orcamento) : Orcamento
+    + buscarPorId(id : Long) : Optional<Orcamento>
+    + listarPorOrdemDeServico(ordemDeServicoId : Long) : List<Orcamento>
+    + buscarAtivoByOrdemDeServico(ordemDeServicoId : Long) : Optional<Orcamento>
+  }
+
+  Orcamento --> StatusOrcamento : usa
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' BC ESTOQUE — Supporting Subdomain
+' ─────────────────────────────────────────────────────────────────────────────
+package "BC Estoque  <<Supporting Subdomain>>" #E1D5E7 {
+
+
+  class Peca <<Aggregate Root>> {
+    - id : Long
+    - nome : String
+    - descricao : String
+    - quantidadeEstoque : Quantidade
+    - valorUnitario : BigDecimal
+    - estoqueMinimo : int
+    ..
+    + verificarDisponibilidade(quantidadeSolicitada : int)
+    + baixarEstoque(quantidade : int)
+    + reporEstoque(quantidade : int)
+    + estaComEstoqueBaixo() : boolean
+    + temDisponibilidade(qtd : int) : boolean
+    + atualizar(nome : String, descricao : String, valorUnitario : BigDecimal, estoqueMinimo : Integer)
+  }
+
+  class Quantidade <<Value Object>> {
+    - valor : int
+    ..
+    + Quantidade(valor : int)
+    + subtrair(qtd : int) : Quantidade
+    + adicionar(qtd : int) : Quantidade
+    + temDisponibilidade(qtd : int) : boolean
+    + validar() : boolean
+    + toString() : String
+  }
+
+  interface PecaRepository <<Port>> {
+    + salvar(peca : Peca) : Peca
+    + buscarPorId(id : Long) : Optional<Peca>
+    + listarTodas() : List<Peca>
+    + listarComEstoqueBaixo() : List<Peca>
+    + excluir(id : Long)
+  }
+
+  Peca *-- Quantidade : <<embeds>>
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' BC CATÁLOGO DE SERVIÇOS — Supporting Subdomain
+' ─────────────────────────────────────────────────────────────────────────────
+package "BC Catálogo de Serviços  <<Supporting Subdomain>>" #F8CECC {
+
+
+  class Servico <<Aggregate Root>> {
+    - id : Long
+    - nome : String
+    - descricao : String
+    - valorUnitario : BigDecimal
+    - tempoEstimadoMinutos : Integer
+    ..
+    + atualizar(nome : String, descricao : String, valorUnitario : BigDecimal, tempoEstimadoMinutos : Integer)
+  }
+
+  interface ServicoRepository <<Port>> {
+    + salvar(servico : Servico) : Servico
+    + buscarPorId(id : Long) : Optional<Servico>
+    + listarTodos() : List<Servico>
+    + excluir(id : Long)
+  }
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' BC FINANCEIRO — Supporting Subdomain
+' ─────────────────────────────────────────────────────────────────────────────
+package "BC Financeiro  <<Supporting Subdomain>>" #D0E0FF {
+  interface PagamentoGateway <<Port>> {
+    + processar(...)
+  }
+
+
+  class Pagamento <<Aggregate Root>> {
+    - id : Long
+    - ordemDeServicoId : Long
+    - status : StatusPagamento
+    - metodo : MetodoPagamento
+    - valor : BigDecimal
+    - dataPagamento : LocalDateTime
+    - transactionId : String
+    - gatewayMensagem : String
+    ..
+    + aprovar()
+    + aprovar(transactionId : String, gatewayMensagem : String)
+    + recusar(transactionId : String, gatewayMensagem : String)
+  }
+
+  enum StatusPagamento {
+    PENDENTE
+    APROVADO
+    RECUSADO
+  }
+
+  enum MetodoPagamento {
+    DINHEIRO
+    CARTAO_CREDITO
+    CARTAO_DEBITO
+    PIX
+    BOLETO
+  }
+
+  interface PagamentoRepository <<Port>> {
+    + salvar(pagamento : Pagamento) : Pagamento
+    + buscarPorId(id : Long) : Optional<Pagamento>
+    + buscarPorOrdemDeServico(ordemDeServicoId : Long) : Optional<Pagamento>
+  }
+
+  Pagamento --> StatusPagamento  : usa
+  Pagamento --> MetodoPagamento  : usa
+
+  note bottom of PagamentoGateway
+    Implementado por:
+    MockPagamentoGateway <<ACL>>
+    (infrastructure/gateway/)
+    ← Traduz resposta do Gateway
+    Pagamento <<OHS>> para domínio
+  end note
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' BC ENTREGA — Supporting Subdomain
+' ─────────────────────────────────────────────────────────────────────────────
+package "BC Entrega  <<Supporting Subdomain>>" #D5E8D4 {
+
+
+  class Entrega <<Aggregate Root>> {
+     - id : Long
+     - ordemDeServicoId : Long
+     - status : StatusEntrega
+     - dataEntrega : LocalDateTime
+     - observacoes : String
+     ..
+     + static criar(ordemDeServicoId : Long) : Entrega
+     + liberarVeiculo()
+     + entregarVeiculo()
+     + registrarEmPatio()
+     + retirarDoPatio()
+  }
+
+  enum StatusEntrega {
+    AGUARDANDO_LIBERACAO
+    VEICULO_LIBERADO
+    VEICULO_ENTREGUE
+    VEICULO_EM_PATIO
+  }
+
+  interface EntregaRepository <<Port>> {
+    + salvar(entrega : Entrega) : Entrega
+    + buscarPorId(id : Long) : Optional<Entrega>
+    + buscarPorOrdemDeServico(ordemDeServicoId : Long) : Optional<Entrega>
+  }
+
+  Entrega --> StatusEntrega : usa
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' BC ENCERRAMENTO — Supporting Subdomain
+' ─────────────────────────────────────────────────────────────────────────────
+package "BC Encerramento  <<Supporting Subdomain>>" #FFE6CC {
+
+
+  class Encerramento <<Aggregate Root>> {
+    - id : Long
+    - ordemDeServicoId : Long
+    - status : StatusEncerramento
+    - dataEncerramento : LocalDateTime
+    ..
+    + static criar(ordemDeServicoId : Long) : Encerramento
+    + encerrar()
+  }
+
+  enum StatusEncerramento {
+    PENDENTE
+    ENCERRADA
+  }
+
+  interface EncerramentoRepository <<Port>> {
+    + salvar(encerramento : Encerramento) : Encerramento
+    + buscarPorId(id : Long) : Optional<Encerramento>
+    + buscarPorOrdemDeServico(ordemDeServicoId : Long) : Optional<Encerramento>
+  }
+
+  Encerramento --> StatusEncerramento : usa
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' LEGENDA
+' ─────────────────────────────────────────────────────────────────────────────
+legend right
+  <b>PRINCÍPIOS DE DESIGN (DDD)</b>
+  ====
+  · Entre BCs diferentes, usamos referência por ID — não por objeto
+  · Dentro do mesmo BC, a navegação por objeto é permitida (ex: Veículo → Cliente)
+  · Cada agregado é responsável por suas próprias regras e consistência
+  · <b>OrdemDeServico</b> é o agregado central — todos os outros BCs dependem dela
+  ====
+  <b>RELACIONAMENTOS ENTRE AGREGADOS</b>
+  ====
+  <b>Cliente (1) - (N) Veículo</b>
+  · Um cliente pode ter vários veículos
+  · Um veículo pertence a um único cliente
+  ----
+  <b>Veículo (1) - (N) Ordem de Serviço</b>
+  · Um veículo pode ter várias ordens de serviço
+  · Uma OS pertence a um único veículo
+  ----
+  <b>Ordem de Serviço (1) - (N) Item OS</b>
+  · Uma OS pode ter vários itens (peças e serviços)
+  · Cada item pertence a uma única OS
+  ----
+  <b>Ordem de Serviço (1) - (N) Orçamento</b>
+  · Uma OS pode gerar vários orçamentos
+  · Cada orçamento está vinculado a uma única OS
+  ----
+  <b>Ordem de Serviço (1) - (1) Execução</b>
+  · Cada OS possui uma única execução
+  · Uma execução pertence a uma única OS
+  ----
+  <b>Execução (1) - (1) Diagnóstico</b>
+  · Cada execução tem um único diagnóstico
+  · O diagnóstico pertence a uma execução
+  ----
+  <b>Ordem de Serviço (1) - (1) Pagamento</b>
+  · Cada OS tem um único pagamento
+  · O pagamento está vinculado a uma única OS
+  ----
+  <b>Ordem de Serviço (1) - (1) Entrega</b>
+  · Cada OS tem uma única entrega
+  · A entrega pertence a uma única OS
+  ----
+  <b>Ordem de Serviço (1) - (1) Encerramento</b>
+  · Cada OS tem um único encerramento
+  · O encerramento pertence a uma única OS
+  ----
+  <b>Item OS (N) - (1) Peça</b>
+  · Um item pode referenciar uma peça do estoque
+  · Uma peça pode aparecer em vários itens de OS
+  ----
+  <b>Item OS (N) - (1) Serviço</b>
+  · Um item pode referenciar um serviço do catálogo
+  · Um serviço pode aparecer em vários itens de OS
+  ====
+  <b>Ícones PlantUML</b>
+  | <back:#FFFFFF><color:#000000> C </color></back> | class    — Aggregate Root, Entity, Value Object |
+  | <back:#FFFFFF><color:#000000> I </color></back> | interface — Port (contrato do domínio)           |
+  | <back:#FFFFFF><color:#000000> E </color></back> | enum     — Status, tipos enumerados              |
+  ----
+  <b>Blocos de Construção DDD</b>
+  |<back:#FFFFFF> <<Aggregate Root>> </back>| Ponto de entrada único do agregado      |
+  |<back:#FFFFFF> <<Entity>>         </back>| Identidade própria; mutável              |
+  |<back:#FFFFFF> <<Value Object>>   </back>| Imutável; igualdade por valor            |
+  |<back:#FFFFFF> <<Port>>           </back>| Interface definida no domínio            |
+  |<back:#FFFFFF> <<ACL>>            </back>| Anti-Corruption Layer (infrastructure)   |
+  |<back:#FFFFFF> <<OHS>>            </back>| Open Host Service (sistema externo)      |
+  ----
+  <b>Tipos de Subdomínio</b>
+  |<back:#D5E8D4> Core      </back>| Diferencial competitivo — AT, OS, EX, ORC |
+  |<back:#D0E0FF> Supporting </back>| Necessário, não diferencial — EST, SVC, FI, EN, EC |
+  |<back:#FFE0FF> Generic    </back>| Solução de mercado — ViaCEP, Gateway Pgto  |
+endlegend
+
+@enduml

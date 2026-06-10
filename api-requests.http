@@ -1,0 +1,555 @@
+### ===== OFICINA MECÂNICA - API REQUESTS =====
+### Uso: clique em "Send Request" acima de cada bloco
+### Extensão: REST Client (humao.rest-client)
+###
+### ESTRUTURA:
+###   PARTE 1 — FLUXO FELIZ SEQUENCIAL (execute na ordem)
+###   PARTE 2 — OPERAÇÕES AVULSAS (CRUD de referência)
+
+@baseUrl = http://127.0.0.1:8080
+@contentType = application/json
+
+### >>> Tokens por perfil — cole aqui após cada login <<<
+@tokenGestor    = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJnZXN0b3IxIiwicm9sZSI6IkdFU1RPUiIsImlhdCI6MTc4MDE0MjI2NywiZXhwIjoxNzgwMjI4NjY3fQ.WbUBiLFcqCd3SacvaNEtGHr8csP9IlHqwYHfWko1YYc
+@tokenAtendente = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhdGVuZGVudGUxIiwicm9sZSI6IkFURU5ERU5URSIsImlhdCI6MTc4MDE0MjM2NCwiZXhwIjoxNzgwMjI4NzY0fQ.ijIn7BavLjuCNZi5tkTwx_dOOJ9wVwlNp2yC-ablqd4
+@tokenMecanico  = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtZWNhbmljbzEiLCJyb2xlIjoiTUVDQU5JQ08iLCJpYXQiOjE3ODAxNDI2NDcsImV4cCI6MTc4MDIyOTA0N30.QC6u_0StfsRLArbRZoF8YvrBeN02cgVs7Z3ZEq7PTJQ
+
+### ============================================================
+### PARTE 1 — FLUXO FELIZ SEQUENCIAL
+### Execute cada request na ordem. Os IDs usados (clienteId,
+### veiculoId, osId) devem ser ajustados conforme a resposta.
+### ============================================================
+
+### ──────────────────────────────────────────────────────────
+### FASE 0 — GESTOR: Setup inicial (catálogo e estoque)
+### ──────────────────────────────────────────────────────────
+
+### [F0.1] Login como GESTOR (pré-cadastrado)
+# → Copie o token da resposta para @tokenGestor acima
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "gestor1",
+  "password": "senha123"
+}
+
+###
+
+### [F0.2] GESTOR cria Serviço no catálogo
+POST {{baseUrl}}/api/servicos
+Content-Type: {{contentType}}
+Authorization: Bearer {{tokenGestor}}
+
+{
+  "nome": "Troca de Óleo Sintético",
+  "descricao": "Troca de óleo sintético do motor com filtro premium",
+  "valorUnitario": 250.00,
+  "tempoEstimadoMinutos": 45
+}
+
+###
+
+### [F0.3] GESTOR cadastra Peça no estoque
+POST {{baseUrl}}/api/pecas
+Content-Type: {{contentType}}
+Authorization: Bearer {{tokenGestor}}
+
+{
+  "nome": "Filtro de Óleo Premium",
+  "descricao": "Filtro de óleo motor premium",
+  "valorUnitario": 45.00,
+  "quantidadeEstoque": 50,
+  "estoqueMinimo": 10
+}
+
+###
+
+### ──────────────────────────────────────────────────────────
+### FASE 1 — ATENDENTE: Receber o cliente
+### ──────────────────────────────────────────────────────────
+
+### [F1.1] Login como ATENDENTE (pré-cadastrado)
+# → Copie o token da resposta para @tokenAtendente acima
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "atendente1",
+  "password": "senha123"
+}
+
+###
+
+### [F1.2] ATENDENTE cadastra o Cliente
+# → Copie o "id" da resposta e ajuste clienteId nos próximos requests
+POST {{baseUrl}}/api/clientes
+Content-Type: {{contentType}}
+Authorization: Bearer {{tokenAtendente}}
+
+{
+  "documento": "355.673.670-58",
+  "nome": "Zidane",
+  "telefone": "11999990001",
+  "email": "zidane@email.com",
+  "cep": "09715200"
+}
+
+###
+
+### [F1.3] ATENDENTE cadastra o Veículo do cliente
+# → Ajuste clienteId com o id retornado em F1.2
+# → Copie o "id" da resposta e ajuste veiculoId nos próximos requests
+POST {{baseUrl}}/api/veiculos
+Content-Type: {{contentType}}
+Authorization: Bearer {{tokenAtendente}}
+
+{
+  "placa": "ZIZ-1234",
+  "marca": "Toyota",
+  "modelo": "Supra",
+  "ano": 2026,
+  "clienteId": 16
+}
+
+###
+
+### [F1.4] ATENDENTE cria a Ordem de Serviço
+# → Ajuste clienteId e veiculoId
+# → referenciaId 1 = Serviço de F0.2 / referenciaId 1 = Peça de F0.3
+# → Copie o "id" da resposta e ajuste osId nos próximos requests
+POST {{baseUrl}}/api/ordens-servico
+Content-Type: {{contentType}}
+Authorization: Bearer {{tokenAtendente}}
+
+{
+  "clienteId": 16,
+  "veiculoId": 15,
+  "itens": [
+    { "tipo": "SERVICO", "referenciaId": 7, "quantidade": 1 },
+    { "tipo": "PECA",    "referenciaId": 7, "quantidade": 2 }
+  ]
+}
+
+###
+
+### [F1.5] Consultar status da OS — rastreamento público (sem token)
+# → Ajuste o número da OS (formato OS-AAAA-NNNNN)
+GET {{baseUrl}}/api/ordens-servico/numero/OS-2026-00024/status
+
+###
+
+### ──────────────────────────────────────────────────────────
+### FASE 2 — MECÂNICO: Diagnóstico
+### ──────────────────────────────────────────────────────────
+
+### [F2.1] Login como MECÂNICO (pré-cadastrado)
+# → Copie o token da resposta para @tokenMecanico acima
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "mecanico1",
+  "password": "senha123"
+}
+
+###
+
+### [F2.2] MECÂNICO inicia o diagnóstico  (RECEBIDA → EM_DIAGNOSTICO)
+# → Ajuste o osId
+PATCH {{baseUrl}}/api/ordens-servico/24/iniciar-diagnostico
+Authorization: Bearer {{tokenMecanico}}
+
+###
+
+### [F2.3] MECÂNICO adiciona itens identificados no diagnóstico
+# → Ajuste o osId
+POST {{baseUrl}}/api/ordens-servico/24/itens
+Content-Type: {{contentType}}
+Authorization: Bearer {{tokenMecanico}}
+
+[
+  { "tipo": "SERVICO", "referenciaId": 1, "quantidade": 1 },
+  { "tipo": "PECA",    "referenciaId": 1, "quantidade": 1 }
+]
+
+###
+
+### ──────────────────────────────────────────────────────────
+### FASE 3 — ATENDENTE: Orçamento e aprovação do cliente
+### ──────────────────────────────────────────────────────────
+
+### [F3.1] ATENDENTE gera o orçamento  (EM_DIAGNOSTICO → AGUARDANDO_APROVACAO)
+# → Ajuste o osId
+POST {{baseUrl}}/api/ordens-servico/24/orcamento
+Authorization: Bearer {{tokenAtendente}}
+
+###
+
+### [F3.2] ATENDENTE registra aprovação do cliente  (AGUARDANDO_APROVACAO → EM_EXECUCAO)
+# → Ajuste o osId
+PATCH {{baseUrl}}/api/ordens-servico/24/aprovar
+Authorization: Bearer {{tokenAtendente}}
+
+###
+
+### ──────────────────────────────────────────────────────────
+### FASE 4 — MECÂNICO: Execução do serviço
+### ──────────────────────────────────────────────────────────
+
+### [F4.1] MECÂNICO finaliza o serviço  (EM_EXECUCAO → FINALIZADA)
+# → Ajuste o osId
+PATCH {{baseUrl}}/api/ordens-servico/24/finalizar
+Authorization: Bearer {{tokenMecanico}}
+
+###
+
+### ──────────────────────────────────────────────────────────
+### FASE 5 — ATENDENTE: Pagamento e entrega
+### ──────────────────────────────────────────────────────────
+
+### [F5.1] ATENDENTE registra pagamento via gateway mock
+# Métodos: PIX | CARTAO_CREDITO | CARTAO_DEBITO | BOLETO | DINHEIRO
+# Aprovação: 100% via docker-compose (PAGAMENTO_GATEWAY_APPROVAL_RATE=1.0).
+# Se rodar fora do Docker (mvn spring-boot:run), a taxa cai para ~90% — em caso de 422, tente novamente.
+# Quando aprovado: OS avança para AGUARDANDO_RETIRADA
+# → Ajuste o osId e o metodoPagamento
+POST {{baseUrl}}/api/ordens-servico/24/pagamento?metodoPagamento=PIX
+Authorization: Bearer {{tokenAtendente}}
+
+###
+
+### [F5.2] ATENDENTE entrega o veículo ao cliente  (AGUARDANDO_RETIRADA → ENTREGUE)
+# → Ajuste o osId
+PATCH {{baseUrl}}/api/ordens-servico/24/entregar
+Authorization: Bearer {{tokenAtendente}}
+
+###
+
+### ──────────────────────────────────────────────────────────
+### FASE 6 — GESTOR: Métricas e acompanhamento
+### ──────────────────────────────────────────────────────────
+
+### [F6.1] GESTOR consulta métricas de tempo médio por OS
+# Retorna médias globais sobre todas as OS entregues:
+#   tempoMedioExecucaoMinutos    → média (dataCriacao → dataFinalizacao)
+#   tempoMedioAtendimentoMinutos → média (dataCriacao → dataEntrega)
+GET {{baseUrl}}/api/ordens-servico/metricas/tempo-medio
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### [F6.1b] GESTOR consulta breakdown temporal de uma OS específica
+# Retorna: dataCriacao, dataFinalizacao, dataEntrega + tempos calculados
+# Campos nulos = OS ainda não chegou nessa etapa
+# → Ajuste o ID
+GET {{baseUrl}}/api/ordens-servico/24/metricas
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### [F6.2] GESTOR lista OS por status — ENTREGUE (concluídas)
+GET {{baseUrl}}/api/ordens-servico/status/ENTREGUE
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### [F6.2b] GESTOR lista OS por status — AGUARDANDO_APROVACAO (aguardando decisão do cliente)
+GET {{baseUrl}}/api/ordens-servico/status/AGUARDANDO_APROVACAO
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### [F6.2c] GESTOR lista OS por status — outros valores possíveis:
+# RECEBIDA | EM_DIAGNOSTICO | EM_EXECUCAO | FINALIZADA | AGUARDANDO_RETIRADA | CANCELADA
+GET {{baseUrl}}/api/ordens-servico/status/RECEBIDA
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### ──────────────────────────────────────────────────────────
+### FLUXO ALTERNATIVO — Rejeição de orçamento
+### ──────────────────────────────────────────────────────────
+
+### [ALT.1] ATENDENTE cria OS para rejeição
+POST {{baseUrl}}/api/ordens-servico
+Content-Type: {{contentType}}
+Authorization: Bearer {{tokenAtendente}}
+
+{
+  "clienteId": 1,
+  "veiculoId": 1,
+  "itens": [
+    { "tipo": "SERVICO", "referenciaId": 1, "quantidade": 1 }
+  ]
+}
+
+###
+
+### [ALT.2] MECÂNICO inicia diagnóstico
+PATCH {{baseUrl}}/api/ordens-servico/27/iniciar-diagnostico
+Authorization: Bearer {{tokenMecanico}}
+
+###
+
+### [ALT.3] ATENDENTE gera orçamento
+POST {{baseUrl}}/api/ordens-servico/27/orcamento
+Authorization: Bearer {{tokenAtendente}}
+
+###
+
+### [ALT.4] ATENDENTE registra rejeição do cliente  (AGUARDANDO_APROVACAO → CANCELADA)
+PATCH {{baseUrl}}/api/ordens-servico/27/rejeitar
+Authorization: Bearer {{tokenAtendente}}
+
+###
+
+### ============================================================
+### PARTE 2 — OPERAÇÕES AVULSAS (CRUD de referência)
+### ============================================================
+
+### ──────────────────────────────────────────────────────────
+### AUTH
+### ──────────────────────────────────────────────────────────
+
+### Registrar novo usuário
+POST {{baseUrl}}/api/auth/registro
+Content-Type: {{contentType}}
+
+{
+  "username": "novo_usuario",
+  "password": "senha123",
+  "role": "ATENDENTE"
+}
+
+###
+
+### ──────────────────────────────────────────────────────────
+### CLIENTES
+### ──────────────────────────────────────────────────────────
+
+### Listar todos os clientes
+GET {{baseUrl}}/api/clientes
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Buscar cliente por ID
+GET {{baseUrl}}/api/clientes/1
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Buscar por CPF (SOMENTE dígitos)
+GET {{baseUrl}}/api/clientes/documento/563.294.100-03
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Buscar por CNPJ (SOMENTE dígitos)
+GET {{baseUrl}}/api/clientes/documento/97006268000172
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Cadastrar Cliente PJ
+POST {{baseUrl}}/api/clientes
+Content-Type: {{contentType}}
+Authorization: Bearer {{tokenAtendente}}
+
+{
+  "documento": "97.006.268/0001-72",
+  "nome": "Localiza LTDA",
+  "telefone": "1133334444",
+  "email": "contato@localiza.com",
+  "cep": "04538133"
+}
+
+###
+
+### Atualizar cliente
+PUT {{baseUrl}}/api/clientes/1
+Content-Type: {{contentType}}
+Authorization: Bearer {{tokenAtendente}}
+
+{
+  "documento": "563.294.100-03",
+  "nome": "Theo Atualizado",
+  "telefone": "11999990002",
+  "email": "theo.novo@email.com",
+  "cep": "01001000"
+}
+
+###
+
+### Excluir cliente
+DELETE {{baseUrl}}/api/clientes/13
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### ──────────────────────────────────────────────────────────
+### VEÍCULOS
+### ──────────────────────────────────────────────────────────
+
+### Listar todos os veículos
+GET {{baseUrl}}/api/veiculos
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Buscar veículo por ID
+GET {{baseUrl}}/api/veiculos/1
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Listar veículos por cliente
+GET {{baseUrl}}/api/veiculos/cliente/1
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Atualizar veículo
+PUT {{baseUrl}}/api/veiculos/1
+Content-Type: {{contentType}}
+Authorization: Bearer {{tokenAtendente}}
+
+{
+  "placa": "ABC-1234",
+  "marca": "Toyota",
+  "modelo": "Corolla XEi",
+  "ano": 2023,
+  "clienteId": 1
+}
+
+###
+
+### Excluir veículo
+DELETE {{baseUrl}}/api/veiculos/2
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### ──────────────────────────────────────────────────────────
+### SERVIÇOS (catálogo)
+### ──────────────────────────────────────────────────────────
+
+### Listar todos os serviços
+GET {{baseUrl}}/api/servicos
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Buscar serviço por ID
+GET {{baseUrl}}/api/servicos/1
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Atualizar serviço
+PUT {{baseUrl}}/api/servicos/1
+Content-Type: {{contentType}}
+Authorization: Bearer {{tokenGestor}}
+
+{
+  "nome": "Troca de Óleo Sintético",
+  "descricao": "Troca de óleo sintético do motor com filtro premium",
+  "valorUnitario": 250.00,
+  "tempoEstimadoMinutos": 45
+}
+
+###
+
+### Excluir serviço
+DELETE {{baseUrl}}/api/servicos/2
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### ──────────────────────────────────────────────────────────
+### PEÇAS (estoque)
+### ──────────────────────────────────────────────────────────
+
+### Listar todas as peças
+GET {{baseUrl}}/api/pecas
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Buscar peça por ID
+GET {{baseUrl}}/api/pecas/1
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Peças com estoque abaixo do mínimo
+GET {{baseUrl}}/api/pecas/estoque-baixo
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Repor estoque
+PATCH {{baseUrl}}/api/pecas/1/repor-estoque?quantidade=20
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Atualizar peça
+PUT {{baseUrl}}/api/pecas/1
+Content-Type: {{contentType}}
+Authorization: Bearer {{tokenGestor}}
+
+{
+  "nome": "Filtro de Óleo Premium",
+  "descricao": "Filtro de óleo motor premium",
+  "valorUnitario": 45.00,
+  "quantidadeEstoque": 50,
+  "estoqueMinimo": 75
+}
+
+###
+
+### Excluir peça
+DELETE {{baseUrl}}/api/pecas/2
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### ──────────────────────────────────────────────────────────
+### ORDENS DE SERVIÇO (consultas avulsas)
+### ──────────────────────────────────────────────────────────
+
+### Listar todas as OS
+GET {{baseUrl}}/api/ordens-servico
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Buscar OS por ID
+GET {{baseUrl}}/api/ordens-servico/1
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Buscar OS por número
+GET {{baseUrl}}/api/ordens-servico/numero/OS-2026-00001
+Authorization: Bearer {{tokenGestor}}
+
+###
+
+### Consultar status da OS por ID interno (autenticado)
+GET {{baseUrl}}/api/ordens-servico/1/status
+Authorization: Bearer {{tokenGestor}}
+
+### Rastreamento público — consultar status pelo número da OS (sem token)
+# → Endpoint indicado para clientes verificarem o andamento via número da OS.
+GET {{baseUrl}}/api/ordens-servico/numero/OS-2026-00001/status
+
+###
+
+### Listar OS de um cliente
+GET {{baseUrl}}/api/ordens-servico/cliente/1
+Authorization: Bearer {{tokenGestor}}
+
+###

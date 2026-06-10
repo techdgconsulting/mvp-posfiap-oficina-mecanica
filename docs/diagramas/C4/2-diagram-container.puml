@@ -1,0 +1,44 @@
+@startuml C4_Container_OficinaMecanica
+!include <C4/C4_Container>
+
+LAYOUT_TOP_DOWN()
+LAYOUT_WITH_LEGEND()
+
+title Diagrama de Container — Sistema Oficina Mecânica DGCAR [C4 — Nível 2]
+
+' ─── OBJETIVOS ────────────────────────────────────────────────────────
+'Visão dos principais blocos de construção do sistema (APIs, DB, etc).
+
+' ─── USO ──────────────────────────────────────────────────────────────
+'Facilita a compreensão de dependências e do fluxo de dados entre os conteineres.
+
+
+' ─── PESSOAS ──────────────────────────────────────────────────────────────────
+Person(atendente, "Atendente", "Perfil ATENDENTE. Gerencia clientes, veículos, cria OS, orçamentos e pagamentos via API REST.")
+Person(mecanico, "Mecânico", "Perfil MECANICO. Inicia diagnóstico, adiciona itens e finaliza serviço via API REST.")
+Person(gestor, "Gestor", "Perfil GESTOR. Acesso completo: tudo acima + CRUD peças/serviços + KPIs.")
+Person(cliente, "Cliente", "Proprietário do veículo. Aprova ou rejeita orçamentos. Esse registro é feito pelo Atendente no Sistema via API REST.")
+
+' ─── SISTEMAS EXTERNOS ────────────────────────────────────────────────────────
+System_Ext(viacep, "ViaCEP API", "Serviço público. Retorna endereço completo a partir de um CEP informado.")
+System_Ext(gateway, "Gateway de Pagamento", "Processa e autoriza pagamentos. Retorna aprovação ou recusa com código de transação. (Mock em dev)")
+
+' ─── SISTEMA: OFICINA MECÂNICA ────────────────────────────────────────────────
+System_Boundary(oficina, "Sistema Oficina Mecânica") {
+
+    Container(api, "API Spring Boot", "Java 17, Spring Boot 3, Docker", "Expõe endpoints REST. Contém toda a lógica de negócio organizada em camadas: Interface, Application, Domain e Infrastructure.")
+
+    ContainerDb(db, "PostgreSQL 16", "Banco de Dados Relacional, Docker", "Armazena clientes, veículos, OS, itens, peças, serviços, orçamentos, execuções, diagnósticos, pagamentos, entregas, encerramentos e usuários.")
+}
+
+' ─── RELACIONAMENTOS ──────────────────────────────────────────────────────────
+Rel(atendente, api, "Gerencia clientes, veículos, OS, orçamentos e pagamentos", "JSON/HTTPS, Bearer Token")
+Rel(mecanico, api, "Inicia diagnóstico, adiciona itens, finaliza serviço", "JSON/HTTPS, Bearer Token")
+Rel(gestor, api, "Acesso completo: CRUD peças/serviços, KPIs, todas as operações", "JSON/HTTPS, Bearer Token")
+Rel(cliente, api, "Aprova/rejeita orçamento. Consulta status da OS pelo número (sem login)", "JSON/HTTPS")
+
+Rel(api, db, "Lê e escreve dados de todos os agregados", "SQL/TCP, porta 5432")
+Rel(api, viacep, "Consulta endereço por CEP ao cadastrar/editar cliente", "HTTP GET")
+Rel(api, gateway, "Envia valor e método de pagamento; recebe aprovação ou recusa", "HTTPS")
+
+@enduml

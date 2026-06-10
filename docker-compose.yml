@@ -1,0 +1,44 @@
+services:
+  app:
+    build: .
+    container_name: oficina-mecanica-dgcar
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/oficina
+      SPRING_DATASOURCE_USERNAME: oficina
+      SPRING_DATASOURCE_PASSWORD: oficina123
+      JWT_SECRET: ${JWT_SECRET:-chave-prod}
+      PAGAMENTO_GATEWAY_APPROVAL_RATE: "1.0"
+      PAGAMENTO_GATEWAY_LATENCY_MS: "0"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - oficina-net
+
+  db:
+    image: postgres:16-alpine
+    container_name: oficina-db
+    environment:
+      POSTGRES_DB: oficina
+      POSTGRES_USER: oficina
+      POSTGRES_PASSWORD: oficina123
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oficina"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - oficina-net
+
+volumes:
+  pgdata:
+
+networks:
+  oficina-net:
+    driver: bridge

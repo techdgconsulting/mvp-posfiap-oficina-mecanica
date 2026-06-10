@@ -1,0 +1,99 @@
+@startuml StatusOS
+!theme plain
+skinparam backgroundColor #FEFEFE
+
+title Máquina de Estados - Ordem de Serviço
+
+[*] --> RECEBIDA : Criar OS
+
+RECEBIDA --> EM_DIAGNOSTICO : Iniciar Diagnóstico
+
+EM_DIAGNOSTICO --> AGUARDANDO_APROVACAO : Gerar Orçamento
+
+AGUARDANDO_APROVACAO --> EM_EXECUCAO : Orçamento Aprovado
+AGUARDANDO_APROVACAO --> CANCELADA : Orçamento Rejeitado
+
+EM_EXECUCAO --> AGUARDANDO_APROVACAO : Problema Identificado\n(novo orçamento)
+EM_EXECUCAO --> FINALIZADA : Serviço Finalizado
+
+FINALIZADA --> AGUARDANDO_RETIRADA : Pagamento Aprovado
+
+AGUARDANDO_RETIRADA --> ENTREGUE : Veículo Entregue
+
+ENTREGUE --> [*] : OS Encerrada
+
+RECEBIDA : OS criada
+RECEBIDA : Veículo recepcionado
+
+EM_DIAGNOSTICO : Mecânico avaliando
+EM_DIAGNOSTICO : o veículo
+
+AGUARDANDO_APROVACAO : Orçamento enviado
+AGUARDANDO_APROVACAO : ao cliente
+
+EM_EXECUCAO : Serviços sendo
+EM_EXECUCAO : realizados
+
+FINALIZADA : Serviços concluídos
+FINALIZADA : Aguardando pagamento
+
+AGUARDANDO_RETIRADA : Pagamento aprovado
+AGUARDANDO_RETIRADA : aguardando retirada
+
+ENTREGUE : Veículo devolvido
+ENTREGUE : ao cliente
+
+CANCELADA : OS cancelada
+CANCELADA : pelo cliente
+
+@enduml
+
+@startuml StatusEntrega
+!theme plain
+skinparam backgroundColor #FEFEFE
+
+title Máquina de Estados - Entrega do Veículo
+
+[*] --> AGUARDANDO_LIBERACAO : Criar Entrega
+
+AGUARDANDO_LIBERACAO --> VEICULO_LIBERADO : Pagamento Aprovado
+
+VEICULO_LIBERADO --> VEICULO_ENTREGUE : Cliente retirou
+VEICULO_LIBERADO --> VEICULO_EM_PATIO : Cliente não retirou
+
+VEICULO_EM_PATIO --> VEICULO_ENTREGUE : Cliente retirou
+
+VEICULO_ENTREGUE --> [*]
+
+AGUARDANDO_LIBERACAO : Aguardando pagamento
+
+VEICULO_LIBERADO : Veículo liberado
+VEICULO_LIBERADO : para retirada
+
+VEICULO_EM_PATIO : Veículo no pátio
+VEICULO_EM_PATIO : aguardando retirada
+
+VEICULO_ENTREGUE : Veículo devolvido
+VEICULO_ENTREGUE : ao cliente
+
+@enduml
+
+@startuml StatusEncerramento
+!theme plain
+skinparam backgroundColor #FEFEFE
+
+title Máquina de Estados - Encerramento
+
+[*] --> PENDENTE : Criar Encerramento
+
+PENDENTE --> ENCERRADA : Encerrar OS
+
+ENCERRADA --> [*]
+
+PENDENTE : Aguardando entrega
+PENDENTE : do veículo
+
+ENCERRADA : OS fechada
+ENCERRADA : definitivamente
+
+@enduml

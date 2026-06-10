@@ -1,0 +1,236 @@
+@startuml SequenceDiagram
+!theme plain
+skinparam backgroundColor #ffffff
+skinparam sequenceMessageAlign center
+
+title Diagrama de Sequência - Fluxo Completo da Ordem de Serviço
+
+actor Atendente as atend
+actor Cliente as cli
+actor "Mecânico" as mec
+participant "API\n(Controllers)" as api
+participant "OrdemDeServicoService" as osSvc
+participant "ClienteService" as cliSvc
+participant "ViaCepClient" as viaCep
+participant "VeiculoService" as veicSvc
+participant "Domain\n(Aggregates)" as domain
+participant "PagamentoGateway\n(MockAdapter)" as gateway
+participant "Repositories\n(JPA)" as repo
+database "PostgreSQL" as db
+
+== 1. ATENDIMENTO: Cadastro de Cliente ==
+
+atend -> api : POST /api/clientes\n{documento, nome, telefone, email, cep}
+api -> cliSvc : criar(ClienteRequest)
+cliSvc -> domain : new CpfCnpj(documento)\nvalidar()
+cliSvc -> viaCep : buscarPorCep(cep)
+viaCep -> viaCep : GET viacep.com.br/ws/{cep}/json/
+viaCep --> cliSvc : ViaCepResponse\n{logradouro, bairro, cidade, uf}
+cliSvc -> domain : cliente.preencherEndereco(...)
+cliSvc -> repo : clienteRepository.salvar(cliente)
+repo -> db : INSERT INTO clientes
+repo --> cliSvc : Cliente (persistido)
+cliSvc --> api : ClienteResponse
+api --> atend : 201 Created
+
+== 2. ATENDIMENTO: Cadastro de Veículo ==
+
+atend -> api : POST /api/veiculos\n{placa, marca, modelo, ano, clienteId}
+api -> veicSvc : criar(VeiculoRequest)
+veicSvc -> repo : clienteRepository.buscarPorId(clienteId)
+veicSvc -> domain : new Placa(placa)\nvalidarMercosul()
+veicSvc -> repo : veiculoRepository.salvar(veiculo)
+repo -> db : INSERT INTO veiculos
+api --> atend : 201 Created
+
+== 3. ORDEM DE SERVIÇO: Criação com Itens ==
+
+atend -> api : POST /api/ordens-servico\n{clienteId, veiculoId, itens[]}
+api -> osSvc : criarOS(CriarOrdemServicoRequest)
+osSvc -> repo : clienteRepository.buscarPorId(clienteId)
+osSvc -> repo : veiculoRepository.buscarPorId(veiculoId)
+
+loop para cada item (PECA ou SERVICO)
+    alt tipo = PECA
+        osSvc -> repo : pecaRepository.buscarPorId(referenciaId)
+        osSvc -> domain : peca.verificarDisponibilidade(qtd)
+        osSvc -> domain : itemOS(PECA, nome, qtd, valorUnitario)
+    else tipo = SERVICO
+        osSvc -> repo : servicoRepository.buscarPorId(referenciaId)
+        osSvc -> domain : itemOS(SERVICO, nome, qtd, valorUnitario)
+    end
+end
+
+osSvc -> domain : ordemDeServico.adicionarItem(item)
+osSvc -> repo : ordemRepository.salvar(os)
+repo -> db : INSERT INTO ordens_servico (atendente_nome = atendenteNome)\nINSERT INTO itens_os
+osSvc -> domain : os.atribuirNumero("OS-AAAA-NNNNN")
+osSvc -> repo : ordemRepository.salvar(os)
+repo -> db : UPDATE ordens_servico SET numero
+osSvc --> api : OrdemServicoResponse (status=RECEBIDA, numero="OS-2026-00001", atendenteNome)
+api --> atend : 201 Created
+
+== 3.5 DIAGNÓSTICO: Mecânico inicia avaliação do veículo ==
+
+note over mec, api : Execucao já foi criada em criarOS() com status AGUARDANDO.
+mec -> api : PATCH /api/ordens-servico/{id}/iniciar-diagnostico\n[Bearer Token]
+api -> osSvc : iniciarDiagnostico(id)
+osSvc -> repo : ordemRepository.buscarPorId(id)
+osSvc -> domain : os.avancarParaDiagnostico()\n[RECEBIDA -> EM_DIAGNOSTICO]
+osSvc -> repo : ordemRepository.salvar(os)
+repo -> db : UPDATE ordens_servico SET status = 'EM_DIAGNOSTICO'
+osSvc -> repo : execucaoRepository.buscarPorOrdemDeServico(id)
+osSvc -> domain : execucao.iniciarDiagnostico(mecanicoNome)\n[AGUARDANDO → EM_DIAGNOSTICO]
+osSvc -> repo : execucaoRepository.salvar(execucao)
+repo -> db : UPDATE execucoes SET status = 'EM_DIAGNOSTICO', mecanico_nome = mecanicoNome
+osSvc --> api : OrdemServicoResponse (status=EM_DIAGNOSTICO, mecanicoNome)
+api --> mec : 200 OK
+
+== 4. ORÇAMENTO: Geração (requer status EM_DIAGNOSTICO ou EM_EXECUCAO) ==
+
+note over atend, api
+  Após o diagnóstico, o atendente gera o orçamento.
+  Perfil exigido: ATENDENTE ou GESTOR.
+end note
+atend -> api : POST /api/ordens-servico/{id}/orcamento\n[Bearer Token]
+api -> osSvc : gerarOrcamento(id)
+osSvc -> repo : ordemRepository.buscarPorId(id)
+osSvc -> domain : os.calcularValorTotal()
+osSvc -> domain : orcamento = Orcamento.gerar(osId, valorTotal)
+osSvc -> domain : orcamento.enviar()
+osSvc -> domain : os.aguardarAprovacao()\n[EM_DIAGNOSTICO -> AGUARDANDO_APROVACAO]
+osSvc -> repo : orcamentoRepository.salvar(orcamento)
+osSvc -> repo : ordemRepository.salvar(os)
+repo -> db : INSERT INTO orcamentos\nUPDATE ordens_servico
+osSvc --> api : OrcamentoResponse (status=ENVIADO)
+api --> mec : 200 OK
+
+== 5. ORÇAMENTO: Aprovação (Atendente registra decisão do cliente) ==
+
+cli -> atend : Comunica aprovação\n(telefone/presencial)
+atend -> api : PATCH /api/ordens-servico/{id}/aprovar\n[Bearer Token]
+api -> osSvc : aprovarOrcamento(id)
+osSvc -> repo : orcamentoRepository.buscarAtivoByOrdemDeServico(osId)
+osSvc -> domain : orcamento.aprovar()
+osSvc -> domain : os.aprovarEIniciarExecucao()\n[AGUARDANDO_APROVACAO -> EM_EXECUCAO]
+
+loop para cada item do tipo PECA
+    osSvc -> repo : pecaRepository.buscarPorId(referenciaId)
+    osSvc -> domain : peca.baixarEstoque(quantidade)
+    osSvc -> repo : pecaRepository.salvar(peca)
+    repo -> db : UPDATE pecas SET quantidade_estoque
+end
+
+osSvc -> repo : salvar(orcamento, os)
+repo -> db : UPDATE orcamentos\nUPDATE ordens_servico
+osSvc -> repo : execucaoRepository.buscarPorOrdemDeServico(id)
+osSvc -> domain : execucao.iniciarServico()\n[se status EM_DIAGNOSTICO]
+osSvc -> repo : execucaoRepository.salvar(execucao)
+repo -> db : UPDATE execucoes SET status = 'EM_ANDAMENTO'
+osSvc --> api : OrdemServicoResponse (status=EM_EXECUCAO)
+api --> atend : 200 OK
+
+== 5b. ORÇAMENTO: Rejeição (fluxo alternativo) ==
+
+cli -> atend : Comunica rejeição\n(telefone/presencial)
+atend -> api : PATCH /api/ordens-servico/{id}/rejeitar\n[Bearer Token]
+api -> osSvc : rejeitarOrcamento(id)
+osSvc -> repo : orcamentoRepository.buscarAtivoByOrdemDeServico(osId)
+osSvc -> domain : orcamento.rejeitar()
+osSvc -> repo : orcamentoRepository.salvar(orcamento)
+osSvc -> domain : os.cancelar()
+osSvc -> repo : ordemRepository.salvar(os)
+repo -> db : UPDATE orcamentos\nUPDATE ordens_servico
+osSvc --> api : OrdemServicoResponse (status=CANCELADA)
+api --> atend : 200 OK
+
+== 5c. EXECUÇÃO: Novo Problema Identificado (fluxo alternativo) ==
+
+note over mec, api
+  Durante a execução, mecânico identifica problema adicional.
+  Chama gerarOrcamento() com OS em EM_EXECUCAO.
+  aguardarAprovacao() aceita EM_EXECUCAO como origem.
+end note
+
+note over mec, atend
+  Mecânico comunica problema adicional ao atendente.
+  O atendente (ATENDENTE/GESTOR) chama gerarOrcamento.
+end note
+atend -> api : POST /api/ordens-servico/{id}/orcamento\n(OS em EM_EXECUCAO — novo problema)
+api -> osSvc : gerarOrcamento(id)
+osSvc -> domain : os.aguardarAprovacao()\n[EM_EXECUCAO -> AGUARDANDO_APROVACAO]
+osSvc -> domain : orcamento = Orcamento.gerar(osId, novoValor)
+osSvc -> domain : orcamento.enviar()
+osSvc -> repo : orcamentoRepository.salvar(novoOrcamento)
+osSvc -> repo : ordemRepository.salvar(os)
+repo -> db : INSERT INTO orcamentos\nUPDATE ordens_servico
+osSvc --> api : OrcamentoResponse (status=ENVIADO)
+api --> atend : 200 OK
+note over atend, cli
+  Atendente contata cliente com novo orçamento.
+  Se aprovado → OS retorna a EM_EXECUCAO (seção 5).
+  Se rejeitado → OS vai para CANCELADA (seção 5b).
+end note
+
+== 6. EXECUÇÃO: Finalização do Serviço ==
+
+mec -> api : PATCH /api/ordens-servico/{id}/finalizar\n[Bearer Token]
+api -> osSvc : finalizarServico(id)
+osSvc -> repo : ordemRepository.buscarPorId(id)
+osSvc -> domain : os.finalizar()\n[EM_EXECUCAO -> FINALIZADA]
+osSvc -> repo : ordemRepository.salvar(os)
+osSvc -> repo : execucaoRepository.buscarPorOrdemDeServico(id)
+osSvc -> domain : execucao.iniciarServico()\n[se AGUARDANDO ou EM_DIAGNOSTICO]
+osSvc -> domain : execucao.finalizarServico()
+osSvc -> repo : execucaoRepository.salvar(execucao)
+repo -> db : UPDATE ordens_servico\nUPDATE execucoes SET data_fim
+osSvc --> api : OrdemServicoResponse (status=FINALIZADA)
+api --> mec : 200 OK
+
+== 7a. FINANCEIRO: Pagamento via Gateway (FINALIZADA → AGUARDANDO_RETIRADA) ==
+
+atend -> api : POST /api/ordens-servico/{id}/pagamento\n?metodoPagamento=PIX
+api -> osSvc : registrarPagamento(id, "PIX")
+osSvc -> repo : ordemRepository.buscarPorId(id)
+osSvc -> domain : Pagamento.builder()\nordemDeServicoId, valor, metodo=PIX
+osSvc -> gateway : processar(GatewayRequest\nosId, valor, PIX)
+gateway --> osSvc : GatewayResponse\n(aprovado, transactionId, mensagem)
+
+alt gateway aprovado
+    osSvc -> domain : pagamento.aprovar(transactionId, mensagem)
+    osSvc -> repo : pagamentoRepository.salvar(pagamento)
+    repo -> db : INSERT INTO pagamentos
+    osSvc -> domain : os.aguardarRetirada()\n[FINALIZADA → AGUARDANDO_RETIRADA]
+    osSvc -> repo : ordemRepository.salvar(os)
+    repo -> db : UPDATE ordens_servico SET status = 'AGUARDANDO_RETIRADA'
+    osSvc --> api : OrdemServicoResponse (status=AGUARDANDO_RETIRADA)
+    api --> atend : 200 OK
+else gateway recusado
+    osSvc -> domain : pagamento.recusar(transactionId, mensagem)
+    osSvc -> repo : pagamentoRepository.salvar(pagamento)
+    repo -> db : INSERT INTO pagamentos (status=RECUSADO)
+    osSvc --> api : 422 NegocioException\n"Pagamento recusado pelo gateway"
+    api --> atend : 422 Unprocessable Entity
+end
+
+== 7b. ENTREGA + ENCERRAMENTO: Entrega do Veículo (AGUARDANDO_RETIRADA → ENTREGUE) ==
+
+atend -> api : PATCH /api/ordens-servico/{id}/entregar\n[Bearer Token]
+api -> osSvc : entregarVeiculo(id)
+osSvc -> repo : ordemRepository.buscarPorId(id)
+osSvc -> domain : entrega = Entrega.criar(osId)
+osSvc -> domain : entrega.liberarVeiculo()
+osSvc -> domain : entrega.entregarVeiculo()
+osSvc -> repo : entregaRepository.salvar(entrega)
+repo -> db : INSERT INTO entregas
+osSvc -> domain : os.entregar()\n[AGUARDANDO_RETIRADA → ENTREGUE]
+osSvc -> repo : ordemRepository.salvar(os)
+repo -> db : UPDATE ordens_servico SET status = 'ENTREGUE'
+osSvc -> domain : encerramento = Encerramento.criar(osId)
+osSvc -> domain : encerramento.encerrar()
+osSvc -> repo : encerramentoRepository.salvar(encerramento)
+repo -> db : INSERT INTO encerramentos
+osSvc --> api : OrdemServicoResponse (status=ENTREGUE)
+api --> atend : 200 OK
+
+@enduml

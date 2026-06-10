@@ -1,0 +1,161 @@
+@startuml jwt-rbac-flow
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 1.5
+skinparam noteFontSize 10
+skinparam noteBackgroundColor #FFFDE7
+skinparam noteBorderColor #F9A825
+skinparam sequenceLifeLineBorderColor #888888
+skinparam actorBackgroundColor #DAEEFF
+skinparam participantBackgroundColor #FFFFFF
+skinparam participantBorderColor #888888
+
+title Fluxo JWT com Perfis RBAC — OficinaMecânica DGCar
+
+actor "Usuário\n(qualquer perfil)" as usr
+
+box "Interface" #F0F4FF
+    participant "AuthController\n/api/auth/**" as auth
+end box
+
+box "Infrastructure — Security" #FFF4E0
+    participant "CustomUserDetails\nService" as uds
+    participant "JwtService" as jwt
+    participant "JwtAuthentication\nFilter" as filt
+end box
+
+box "Infrastructure — Security" #EFF8EF
+    participant "SecurityConfig\n+ @PreAuthorize" as sec
+end box
+
+database "DB\n(usuarios)" as db
+
+' ═══════════════════════════════════════════════════════
+== 1. REGISTRO — Validação de Perfil ==
+' ═══════════════════════════════════════════════════════
+
+usr -> auth : POST /api/auth/registro\n{username, password, role: "MECANICO"}
+
+auth -> auth : @Valid — Bean Validation\n@NotBlank username, password, role
+note right of auth
+  role ausente/vazio → 400 imediato\n  (antes de qualquer lógica de negócio)
+end note
+
+auth -> auth : PerfilUsuario.isValido("MECANICO")
+note right of auth
+  Enum válido: ATENDENTE | MECANICO | GESTOR
+  Retorna 400 se valor desconhecido
+end note
+
+auth -> db : INSERT INTO usuarios\n(username, bcrypt(password), "MECANICO")
+db --> auth : OK
+
+auth --> usr : 201 Created\n{mensagem: "Usuário criado com sucesso"}
+
+' ═══════════════════════════════════════════════════════
+== 2. LOGIN — Geração do Token ==
+' ═══════════════════════════════════════════════════════
+
+usr -> auth : POST /api/auth/login\n{username, password}
+
+auth -> uds : AuthenticationManager\n.authenticate(username, password)
+uds -> db : SELECT * FROM usuarios\nWHERE username = ?
+db --> uds : Usuario {username, bcrypt_hash, role}
+uds -> uds : BCrypt.matches(password, hash)
+uds --> auth : autenticado [OK]
+
+auth -> db : findByUsername(username)
+db --> auth : Usuario {role: "MECANICO"}
+
+auth -> jwt : gerarToken(username, "MECANICO")
+jwt -> jwt : Jwts.builder()\n  .subject(username)\n  .claim("role", "MECANICO")\n  .expiration(now + 24h)\n  .signWith(HMAC-SHA256)\n  .compact()
+jwt --> auth : eyJhbGci... (token assinado)
+
+auth --> usr : 200 OK\n{token: "eyJhbGci...", username, role: "MECANICO"}
+
+note over usr
+  Token armazenado pelo client
+  Cada request subsequente envia:
+  Authorization: Bearer <token>
+end note
+
+' ═══════════════════════════════════════════════════════
+== 3. REQUEST AUTENTICADO — Perfil lido do JWT (sem DB) ==
+' ═══════════════════════════════════════════════════════
+
+usr -> filt : PATCH /api/ordens-servico/{id}/iniciar-diagnostico\nAuthorization: Bearer eyJhbGci...
+
+filt -> filt : extrai header "Authorization: Bearer ..."
+filt -> jwt : extrairUsername(token)
+jwt --> filt : "mecanico1"
+
+filt -> jwt : isTokenValido(token)
+jwt -> jwt : verifica assinatura HMAC-SHA256\n+ verifica expiração
+jwt --> filt : true [OK]
+
+filt -> jwt : extrairRole(token)
+jwt -> jwt : parseClaims(token).get("role")
+jwt --> filt : "MECANICO"
+
+note over filt #EFF8EF
+  Sem consulta ao banco!
+  O perfil vem diretamente
+  da claim do token JWT.
+end note
+
+filt -> filt : new SimpleGrantedAuthority("ROLE_MECANICO")\nnew UsernamePasswordAuthenticationToken\n  (username, null, [ROLE_MECANICO])
+filt -> sec : SecurityContextHolder\n.setAuthentication(auth)
+
+filt -> sec : filterChain.doFilter(request)
+
+sec -> sec : AntPathRequestMatcher:\nPATCH /iniciar-diagnostico\n-> hasAnyRole("MECANICO", "GESTOR")
+sec -> sec : ROLE_MECANICO in {MECANICO, GESTOR} ? true [PERMITIDO]
+
+sec --> usr : 200 OK — diagnóstico iniciado
+
+' ═══════════════════════════════════════════════════════
+== 4. REQUEST SEM TOKEN — 401 Unauthorized ==
+' ═══════════════════════════════════════════════════════
+
+usr -> filt : GET /api/pecas\n(sem header Authorization)
+filt -> filt : authHeader == null -> passa adiante
+filt -> sec : filterChain.doFilter
+sec -> sec : .anyRequest().authenticated()\nSecurityContext vazio -> não autenticado
+sec --> usr : 401 Unauthorized\n"Não autorizado"
+
+' ═══════════════════════════════════════════════════════
+== 5. PERFIL INSUFICIENTE — 403 Forbidden ==
+' ═══════════════════════════════════════════════════════
+
+usr -> filt : GET /api/pecas\nAuthorization: Bearer <token MECANICO>
+filt -> jwt : extrairUsername + isTokenValido + extrairRole
+jwt --> filt : "MECANICO" [OK]
+filt -> sec : SecurityContext = [ROLE_MECANICO]
+
+sec -> sec : AntPathRequestMatcher:\nGET /api/pecas/**\n-> hasRole("GESTOR")
+sec -> sec : ROLE_MECANICO in {GESTOR} ? false [NEGADO]
+sec -> sec : accessDeniedHandler.handle()
+sec -> sec : response.sendError(403)
+
+note over sec #FFE0E0
+  Tomcat abre dispatch interno para GET /error (tipo ERROR).
+  OncePerRequestFilter detecta request já filtrado -> PULA JWT filter.
+  SecurityContext fica vazio (anônimo).
+  /error está em permitAll() -> Tomcat retorna 403 original ao cliente.
+  SEM permitAll() em /error: anyRequest().authenticated() rejeitaria
+  o anônimo com 401, sobrescrevendo o 403. BUG!
+end note
+
+sec --> usr : 403 Forbidden
+
+note over usr, db
+  Matriz de autorizacao (SecurityConfig):
+  GESTOR   : tudo + /api/pecas + /api/servicos + metricas OS
+  ATENDENTE: criar OS, orcamentos, pagamento, entregar, clientes/veiculos
+  MECANICO : iniciar diagnostico, adicionar itens, finalizar
+  qualquer : GET /api/ordens-servico/{id}/status (publico, sem token)
+  /error   : permitAll() — dispatch interno Tomcat (preserva status original)
+end note
+
+@enduml

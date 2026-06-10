@@ -1,0 +1,106 @@
+@startuml C4_Componentes_OficinaMecanica
+!include <C4/C4_Component>
+
+LAYOUT_TOP_DOWN()
+LAYOUT_WITH_LEGEND()
+
+title Diagrama de Componentes — API Oficina Mecânica DGCar [C4 — Nível 3]
+
+' ─── OBJETIVOS ────────────────────────────────────────────────────────
+'Detalhar os componentes internos de cada contêiner e suas funcções específicas.
+
+' ─── USO ──────────────────────────────────────────────────────────────
+'Essencial para a equipe de desenvolvimento que precisa compreender as responsabilidades de cada módulo.
+
+
+' ─── ATORES ───────────────────────────────────────────────────────────────────
+Person(atendente, "Atendente", "Perfil ATENDENTE. Cria OS, orçamentos,\npagamentos, entrega; gerencia clientes/veículos")
+Person(mecanico, "Mecânico", "Perfil MECANICO. Inicia diagnóstico,\nadiciona itens, finaliza serviço")
+Person(gestor, "Gestor", "Perfil GESTOR. Acesso completo.\nCRUD peças/serviços + KPIs")
+Person(cliente, "Cliente", "Aprova ou rejeita\norçamentos. Esse registro é feito pelo Atendente no Sistema via API REST.")
+
+' ─── SISTEMAS EXTERNOS ────────────────────────────────────────────────────────
+System_Ext(viacep, "ViaCEP API", "Serviço público que retorna\nendereço a partir de um CEP")
+System_Ext(gatewayExt, "Gateway de Pagamento", "Processa e autoriza pagamentos.\n(Implementação atual: Mock)")
+ContainerDb(db, "PostgreSQL", "Banco de Dados Relacional", "Armazena clientes, veículos, OS,\norçamentos, pagamentos e demais dados")
+
+' ─── CONTAINER: API SPRING BOOT ───────────────────────────────────────────────
+Container_Boundary(api, "API Spring Boot — Oficina Mecânica") {
+
+    ' ── Interface Layer ──────────────────────────────────────────────────────
+    Component(authCtrl,     "AuthController",            "Spring REST Controller\nPOST /api/auth/**",          "Registro e login de usuários; emite JWT")
+    Component(clienteCtrl,  "ClienteController",         "Spring REST Controller\n/api/clientes",             "CRUD completo de clientes")
+    Component(veiculoCtrl,  "VeiculoController",         "Spring REST Controller\n/api/veiculos",             "Cadastro e edição de veículos")
+    Component(pecaCtrl,     "PecaController",            "Spring REST Controller\n/api/pecas",                "Controle de estoque de peças")
+    Component(servicoCtrl,  "ServicoController",         "Spring REST Controller\n/api/servicos",             "Catálogo de serviços da oficina")
+    Component(osCtrl,       "OrdemDeServicoController",  "Spring REST Controller\n/api/ordens-servico",       "Gerencia todo o ciclo de vida de uma OS")
+    Component(exHandler,    "GlobalExceptionHandler",    "Spring @ControllerAdvice",                          "Traduz exceções de domínio em respostas HTTP padronizadas")
+
+    ' ── Application Layer ────────────────────────────────────────────────────
+    Component(clienteSvc,   "ClienteService",            "Spring @Service",   "Regras de negócio de clientes; consulta ViaCEP ao criar/editar")
+    Component(veiculoSvc,   "VeiculoService",            "Spring @Service",   "Regras de negócio de veículos e vínculo com cliente")
+    Component(pecaSvc,      "PecaService",               "Spring @Service",   "Regras de estoque, reposição e baixa de peças")
+    Component(servicoSvc,   "ServicoService",            "Spring @Service",   "Regras do catálogo de serviços")
+    Component(osSvc,        "OrdemDeServicoService",     "Spring @Service",   "Orquestra OS, orçamento, execução,\npagamento, entrega e encerramento")
+
+    ' ── Domain Layer ─────────────────────────────────────────────────────────
+    Component(osDom,            "OrdemDeServico",       "Aggregate Root",          "Controla o ciclo de vida da OS\ne suas transições de status")
+    Component(pagGatewayPort,   "PagamentoGateway",     "Domain Port (interface)", "Contrato do domínio para\nprocessamento de pagamento externo")
+
+    ' ── Infrastructure Layer ─────────────────────────────────────────────────
+    Component(jwtSvc,       "JwtService",                   "Spring Component\nHMAC-SHA256",        "Gera e valida tokens JWT")
+    Component(jwtFilter,    "JwtAuthenticationFilter",      "Spring Security Filter",               "Intercepta requisições e valida o Bearer Token")
+    Component(userDetails,  "CustomUserDetailsService",     "Spring Security\nUserDetailsService",  "Carrega usuário do banco para autenticação")
+    Component(jpaRepos,     "JPA Repositories (10)",        "Spring Data JPA",                      "Adapters de persistência para todos os agregados\n(Cliente, Veiculo, OS, Orcamento, Execucao,\nPagamento, Entrega, Encerramento, Peca, Servico)")
+    Component(viaCepClient, "ViaCepClient",                 "RestTemplate",                         "Consulta endereço na API ViaCEP a partir de um CEP")
+    Component(mockGateway,  "MockPagamentoGateway",         "Spring Component\n<<Adapter>>",         "Simula aprovação/recusa de pagamentos.\nSubstituível por gateway real em produção")
+}
+
+' ─── RELACIONAMENTOS ──────────────────────────────────────────────────────────
+
+' Atores → Interface
+Rel(atendente, authCtrl,    "Login e registro",          "JSON/HTTPS")
+Rel(atendente, clienteCtrl, "Gerencia clientes",         "JSON/HTTPS")
+Rel(atendente, veiculoCtrl, "Gerencia veículos",         "JSON/HTTPS")
+Rel(atendente, osCtrl,      "Cria OS, orçamentos, pagamentos, entrega",  "JSON/HTTPS")
+Rel(mecanico,  authCtrl,    "Login",                     "JSON/HTTPS")
+Rel(mecanico,  osCtrl,      "Diagnóstico, itens, finalização",          "JSON/HTTPS")
+Rel(gestor,    authCtrl,    "Login e registro",          "JSON/HTTPS")
+Rel(gestor,    clienteCtrl, "Gerencia clientes",         "JSON/HTTPS")
+Rel(gestor,    veiculoCtrl, "Gerencia veículos",         "JSON/HTTPS")
+Rel(gestor,    pecaCtrl,    "Gerencia estoque",          "JSON/HTTPS")
+Rel(gestor,    servicoCtrl, "Gerencia catálogo",         "JSON/HTTPS")
+Rel(gestor,    osCtrl,      "Acesso completo às OS",     "JSON/HTTPS")
+Rel(cliente,   osCtrl,      "Aprova/rejeita orçamento. Consulta\nstatus da OS pelo número (sem token)","JSON/HTTPS")
+
+' Interface → Application
+Rel(authCtrl,    jwtSvc,     "Gera token JWT")
+Rel(authCtrl,    userDetails,"Autentica usuário")
+Rel(clienteCtrl, clienteSvc, "Delega operações")
+Rel(veiculoCtrl, veiculoSvc, "Delega operações")
+Rel(pecaCtrl,    pecaSvc,    "Delega operações")
+Rel(servicoCtrl, servicoSvc, "Delega operações")
+Rel(osCtrl,      osSvc,      "Delega operações")
+
+' Application → Domain
+Rel(osSvc,      osDom,          "Manipula ciclo de vida da OS")
+Rel(osSvc,      pagGatewayPort, "Processa pagamento via Port")
+
+' Application → Infrastructure
+Rel(clienteSvc,  viaCepClient, "Busca endereço por CEP")
+Rel(clienteSvc,  jpaRepos,     "Persiste / consulta clientes")
+Rel(veiculoSvc,  jpaRepos,     "Persiste / consulta veículos")
+Rel(pecaSvc,     jpaRepos,     "Persiste / consulta peças")
+Rel(servicoSvc,  jpaRepos,     "Persiste / consulta serviços")
+Rel(osSvc,       jpaRepos,     "Persiste OS, orçamentos, execuções,\npagamentos, entregas, encerramentos")
+
+' Domain Port → Adapter (Spring DI)
+Rel(pagGatewayPort, mockGateway, "Implementado por", "Spring DI")
+
+' Infrastructure → Externos
+Rel(jpaRepos,     db,         "Lê e escreve dados",         "SQL/TCP")
+Rel(viaCepClient, viacep,     "GET /ws/{cep}/json",         "HTTP")
+Rel(mockGateway,  gatewayExt, "Simula chamada ao provedor", "HTTPS")
+Rel(jwtFilter,    jwtSvc,     "Valida Bearer Token")
+
+@enduml

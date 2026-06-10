@@ -1,0 +1,37 @@
+@startuml C4_Context_OficinaMecanica
+!include <C4/C4_Context>
+
+LAYOUT_TOP_DOWN()
+LAYOUT_WITH_LEGEND()
+
+title Diagrama de Contexto — Sistema Oficina Mecânica DGCAR[C4 — Nível 1]
+
+' ─── OBJETIVOS ────────────────────────────────────────────────────────
+'Visão ampla do sistema evidenciando a conexeção com sistemas externos.
+
+' ─── USO ──────────────────────────────────────────────────────────────
+'Ideal para gestores e stackholders que precisam de uma visão geral, sem entrar em detalhes técnicos.
+
+
+' ─── PESSOAS ──────────────────────────────────────────────────────────────────
+Person(atendente, "Atendente", "Perfil ATENDENTE. Cria OS, gera orçamentos, registra pagamentos, entrega veículo, gerencia clientes e veículos.")
+Person(mecanico, "Mecânico", "Perfil MECANICO. Inicia diagnóstico, adiciona itens (peças/serviços) e finaliza o serviço.")
+Person(gestor, "Gestor", "Perfil GESTOR. Acesso completo: tudo do Atendente e Mecânico + CRUD peças/serviços + KPIs.")
+Person(cliente, "Cliente", "Proprietário do veículo. Recebe orçamento e aprova ou rejeita o serviço antes da execução. Esse registro é feito pelo Atendente no Sistema.")
+
+' ─── SISTEMA PRINCIPAL ────────────────────────────────────────────────────────
+System(oficina, "Sistema de Gestão de Oficina Mecânica", "Gerencia o ciclo completo: cadastro de clientes e veículos, abertura de OS, diagnóstico, orçamento, execução, pagamento, entrega e encerramento.")
+
+' ─── SISTEMAS EXTERNOS ────────────────────────────────────────────────────────
+System_Ext(viacep, "ViaCEP API", "Serviço público brasileiro. Retorna logradouro, bairro, cidade e UF a partir de um CEP informado.")
+System_Ext(gateway, "Gateway de Pagamento", "Processa e autoriza pagamentos. Recebe método e valor; retorna aprovação ou recusa com código de transação. (Mock em dev)")
+
+' ─── RELACIONAMENTOS ──────────────────────────────────────────────────────────
+Rel(atendente, oficina, "Cria OS, gera orçamentos, registra pagamentos, gerencia clientes e veículos", "JSON/HTTPS")
+Rel(mecanico, oficina, "Inicia diagnóstico, adiciona itens, finaliza serviço", "JSON/HTTPS")
+Rel(gestor, oficina, "Acesso completo: CRUD peças/serviços, KPIs, todas as operações", "JSON/HTTPS")
+Rel(cliente, oficina, "Aprova/rejeita orçamento. Consulta status da OS pelo número (sem login)", "JSON/HTTPS")
+Rel(oficina, viacep, "Consulta endereço por CEP ao cadastrar/editar cliente", "HTTP GET")
+Rel(oficina, gateway, "Envia valor e método; recebe aprovação ou recusa", "HTTPS")
+
+@enduml
