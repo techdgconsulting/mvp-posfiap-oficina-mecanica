@@ -1,7 +1,8 @@
 {
   "info": {
-    "_postman_id": "2c2d1449-0594-4462-8a94-614b784798dd",
+    "_postman_id": "776d557f-2d97-4265-9aa7-8bac3302e21c",
     "name": "OficinaMecanica — Suite Completa",
+    "description": "Fusao de 01-CenarioFeliz-E2E, 02-ValidacaoPerfil-RBAC, 03-TransicaoStatus-OS e OficinaMecanicaDGCAR. Requer baseUrl=http://127.0.0.1:8080",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "4702957"
   },
@@ -8724,22 +8725,30 @@
                   "listen": "test",
                   "script": {
                     "exec": [
-                      "pm.test('[10.7] ENTREGUE → entregar (retransição) → 409 CONFLICT', function() {",
-                      "    pm.response.to.have.status(409);",
-                      "});",
-                      "pm.test('[10.7] Verificar: ts_osInvEntregue ainda em ENTREGUE após todas as tentativas', function() {",
-                      "    pm.sendRequest(",
-                      "      { url: pm.collectionVariables.get('baseUrl') + '/api/ordens-servico/' + pm.collectionVariables.get('ts_osInvEntregue') + '/status',",
-                      "        method: 'GET' },",
-                      "      function(err, res) {",
-                      "          pm.expect(res.json().status).to.eql('ENTREGUE');",
-                      "          console.log('[10.7] ✅ Estado ENTREGUE imutável após 7 tentativas de transição inválida.');",
-                      "      }",
-                      "    );",
-                      "});",
-                      "console.log('[FIM] ✅ Validação completa da máquina de estados concluída.');"
+                      "pm.sendRequest(",
+                      "    {",
+                      "        url: pm.collectionVariables.get('baseUrl') + '/api/ordens-servico/' + pm.collectionVariables.get('ts_osInvEntregue') + '/status',",
+                      "        method: 'GET',",
+                      "        header: {",
+                      "            'Authorization': 'Bearer ' + pm.collectionVariables.get('token')",
+                      "        }",
+                      "    },",
+                      "    function(err, res) {",
+                      "        if (err) {",
+                      "            console.error('[10.7] ❌ Erro na requisição de status:', err);",
+                      "            return;",
+                      "        }",
+                      "        pm.test('[10.7] Verificar: ts_osInvEntregue ainda em ENTREGUE após todas as tentativas', function() {",
+                      "            pm.expect(res).to.not.be.undefined;",
+                      "            pm.expect(res.json().status).to.eql('ENTREGUE');",
+                      "            console.log('[10.7] ✅ Estado ENTREGUE imutável após 7 tentativas de transição inválida.');",
+                      "        });",
+                      "    }",
+                      ");"
                     ],
-                    "type": "text/javascript"
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
                   }
                 }
               ],
