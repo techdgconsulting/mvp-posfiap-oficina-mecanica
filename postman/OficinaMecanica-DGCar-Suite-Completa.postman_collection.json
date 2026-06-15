@@ -1,10 +1,11 @@
 {
   "info": {
-    "_postman_id": "776d557f-2d97-4265-9aa7-8bac3302e21c",
+    "_postman_id": "45cda36b-28fc-4fc5-9a8d-b8e81ed7db2f",
     "name": "OficinaMecanica — Suite Completa",
     "description": "Fusao de 01-CenarioFeliz-E2E, 02-ValidacaoPerfil-RBAC, 03-TransicaoStatus-OS e OficinaMecanicaDGCAR. Requer baseUrl=http://127.0.0.1:8080",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "4702957"
+    "_exporter_id": "55930966",
+    "_collection_link": "https://go.postman.co/collection/55930966-45cda36b-28fc-4fc5-9a8d-b8e81ed7db2f?source=collection_link"
   },
   "item": [
     {
@@ -8725,12 +8726,16 @@
                   "listen": "test",
                   "script": {
                     "exec": [
+                      "pm.test('[10.7] ENTREGUE → entregar (retransição) → 409 CONFLICT', function() {",
+                      "    pm.response.to.have.status(409);",
+                      "});",
+                      "",
                       "pm.sendRequest(",
                       "    {",
                       "        url: pm.collectionVariables.get('baseUrl') + '/api/ordens-servico/' + pm.collectionVariables.get('ts_osInvEntregue') + '/status',",
                       "        method: 'GET',",
                       "        header: {",
-                      "            'Authorization': 'Bearer ' + pm.collectionVariables.get('token')",
+                      "            'Authorization': 'Bearer ' + pm.collectionVariables.get('tokenGestor')",
                       "        }",
                       "    },",
                       "    function(err, res) {",
@@ -8744,7 +8749,9 @@
                       "            console.log('[10.7] ✅ Estado ENTREGUE imutável após 7 tentativas de transição inválida.');",
                       "        });",
                       "    }",
-                      ");"
+                      ");",
+                      "",
+                      "console.log('[FIM] ✅ Validação completa da máquina de estados concluída.');"
                     ],
                     "type": "text/javascript",
                     "packages": {},
