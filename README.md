@@ -157,6 +157,11 @@ mvn clean test jacoco:report
 # Gerar relatório Allure
 mvn test allure:report
 # → target/site/allure-maven-plugin/index.html
+
+# No Windows rodar o comando
+.\allure-report.ps1 # roda testes + gera report + abre no browser (porta 9090)
+# Script criado para subir um servidor Python HTTP para evitar bloqueio de CORS no browser.
+
 ```
 ---
 

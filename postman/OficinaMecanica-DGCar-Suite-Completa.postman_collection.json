@@ -2,7 +2,6 @@
   "info": {
     "_postman_id": "2c2d1449-0594-4462-8a94-614b784798dd",
     "name": "OficinaMecanica — Suite Completa",
-    "description": "Fusao de 01-CenarioFeliz-E2E, 02-ValidacaoPerfil-RBAC, 03-TransicaoStatus-OS e OficinaMecanicaDGCAR. Requer baseUrl=http://127.0.0.1:8080",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "4702957"
   },
