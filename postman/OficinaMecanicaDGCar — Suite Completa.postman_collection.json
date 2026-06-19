@@ -1,11 +1,10 @@
 {
   "info": {
-    "_postman_id": "45cda36b-28fc-4fc5-9a8d-b8e81ed7db2f",
+    "_postman_id": "8f3fb1bb-a4be-444e-ac79-0e73d996cfe8",
     "name": "OficinaMecanica — Suite Completa",
     "description": "Fusao de 01-CenarioFeliz-E2E, 02-ValidacaoPerfil-RBAC, 03-TransicaoStatus-OS e OficinaMecanicaDGCAR. Requer baseUrl=http://127.0.0.1:8080",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "55930966",
-    "_collection_link": "https://go.postman.co/collection/55930966-45cda36b-28fc-4fc5-9a8d-b8e81ed7db2f?source=collection_link"
+    "_exporter_id": "4702957"
   },
   "item": [
     {
@@ -249,7 +248,9 @@
                       "    }",
                       "});"
                     ],
-                    "type": "text/javascript"
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
                   }
                 },
                 {
@@ -270,7 +271,9 @@
                       "    console.log('[STEP-05] e2e_clienteId (existente) =', pm.collectionVariables.get('e2e_clienteId'));",
                       "}"
                     ],
-                    "type": "text/javascript"
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
                   }
                 }
               ],
@@ -294,7 +297,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"documento\": \"123.456.789-09\",\n  \"nome\": \"Jose da Silva [E2E]\",\n  \"telefone\": \"11999990001\",\n  \"email\": \"jose.e2e@email.com\"\n}"
+                  "raw": "{\n  \"documento\": \"123.456.789-09\",\n  \"nome\": \"Jose da Silva [E2E]\",\n  \"telefone\": \"11999990001\",\n  \"email\": \"jose.e2e@email.com\",\n  \"cep\" : \"05025010\"\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/clientes",
@@ -425,7 +428,9 @@
                       "pm.collectionVariables.set('e2e_osNumero', json.numero);",
                       "console.log('[STEP-07] e2e_osId =', json.id, '| e2e_osNumero =', json.numero);"
                     ],
-                    "type": "text/javascript"
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
                   }
                 }
               ],
@@ -449,7 +454,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"clienteId\": {{e2e_clienteId}},\n  \"veiculoId\": {{e2e_veiculoId}}\n}"
+                  "raw": "{\n  \"clienteId\": {{e2e_clienteId}},\n  \"veiculoId\": {{e2e_veiculoId}},\n  \"itens\": [\n    {\n      \"tipo\": \"SERVICO\",\n      \"referenciaId\": {{e2e_servicoId}},\n      \"quantidade\": 1\n    }\n  ]\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/ordens-servico",
@@ -581,7 +586,9 @@
                       "    pm.expect(json.valorTotal).to.be.a('number').and.above(0);",
                       "});"
                     ],
-                    "type": "text/javascript"
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
                   }
                 }
               ],
@@ -605,7 +612,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "[\n  {\n    \"tipo\": \"SERVICO\",\n    \"referenciaId\": {{e2e_servicoId}},\n    \"quantidade\": 1\n  },\n  {\n    \"tipo\": \"PECA\",\n    \"referenciaId\": {{e2e_pecaId}},\n    \"quantidade\": 2\n  }\n]"
+                  "raw": "[\n  {\n    \"tipo\": \"PECA\",\n    \"referenciaId\": {{e2e_pecaId}},\n    \"quantidade\": 2\n  }\n]"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/ordens-servico/{{e2e_osId}}/itens",
@@ -1036,10 +1043,10 @@
           "description": "ATENDENTE registra o pagamento via PIX (processado pelo MockPagamentoGateway) e entrega o veículo ao cliente. OS conclui em ENTREGUE."
         },
         {
-          "name": "07 | TRACKING PÚBLICO — Cliente acompanha sem autenticação",
+          "name": "07 | TRACKING — Acompanhamento da OS",
           "item": [
             {
-              "name": "STEP-19 — Consultar status por número legível (sem token)",
+              "name": "STEP-19 — Consultar status por número legível (Público - sem token)",
               "event": [
                 {
                   "listen": "test",
@@ -8729,33 +8736,19 @@
                       "pm.test('[10.7] ENTREGUE → entregar (retransição) → 409 CONFLICT', function() {",
                       "    pm.response.to.have.status(409);",
                       "});",
-                      "",
-                      "pm.sendRequest(",
-                      "    {",
-                      "        url: pm.collectionVariables.get('baseUrl') + '/api/ordens-servico/' + pm.collectionVariables.get('ts_osInvEntregue') + '/status',",
-                      "        method: 'GET',",
-                      "        header: {",
-                      "            'Authorization': 'Bearer ' + pm.collectionVariables.get('tokenGestor')",
-                      "        }",
-                      "    },",
-                      "    function(err, res) {",
-                      "        if (err) {",
-                      "            console.error('[10.7] ❌ Erro na requisição de status:', err);",
-                      "            return;",
-                      "        }",
-                      "        pm.test('[10.7] Verificar: ts_osInvEntregue ainda em ENTREGUE após todas as tentativas', function() {",
-                      "            pm.expect(res).to.not.be.undefined;",
-                      "            pm.expect(res.json().status).to.eql('ENTREGUE');",
-                      "            console.log('[10.7] ✅ Estado ENTREGUE imutável após 7 tentativas de transição inválida.');",
-                      "        });",
-                      "    }",
-                      ");",
-                      "",
+                      "pm.test('[10.7] Verificar: ts_osInvEntregue ainda em ENTREGUE após todas as tentativas', function() {",
+                      "    pm.sendRequest(",
+                      "      { url: pm.collectionVariables.get('baseUrl') + '/api/ordens-servico/' + pm.collectionVariables.get('ts_osInvEntregue') + '/status',",
+                      "        method: 'GET' },",
+                      "      function(err, res) {",
+                      "          pm.expect(res.json().status).to.eql('ENTREGUE');",
+                      "          console.log('[10.7] ✅ Estado ENTREGUE imutável após 7 tentativas de transição inválida.');",
+                      "      }",
+                      "    );",
+                      "});",
                       "console.log('[FIM] ✅ Validação completa da máquina de estados concluída.');"
                     ],
-                    "type": "text/javascript",
-                    "packages": {},
-                    "requests": {}
+                    "type": "text/javascript"
                   }
                 }
               ],

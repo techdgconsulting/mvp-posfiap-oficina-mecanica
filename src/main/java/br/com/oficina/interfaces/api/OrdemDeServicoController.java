@@ -21,7 +21,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/ordens-servico")
 @RequiredArgsConstructor
-@Tag(name = "Ordens de Servico", description = "Fluxo completo da OS. Rastreamento publico (sem autenticacao): GET /api/ordens-servico/numero/{numero}/status")
+@Tag(name = "Ordens de Servico", description = "Gestão completa da OS.")
 public class OrdemDeServicoController {
 
     private final OrdemDeServicoService osService;
