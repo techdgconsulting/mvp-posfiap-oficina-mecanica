@@ -34,7 +34,7 @@ package "BC Atendimento  <<Core Subdomain>>" #D5E8D4 {
     + preencherEndereco(cep : String, logradouro : String, bairro : String, cidade : String, uf : String)
   }
 
-  class Veiculo <<Entity>> {
+  class Veiculo <<Aggregate Root>> {
     - id : Long
     - placa : Placa
     - marca : String

@@ -36,7 +36,7 @@ Principais benefícios esperados:
 - **RF08:** O sistema deve permitir a listagem de todos os veículos cadastrados.
 - **RF09:** O sistema deve permitir a listagem de veículos de um cliente específico.
 - **RF10:** O sistema deve permitir a atualização dos dados de um veículo.
-- **RF11:** O sistema deve permitir a exclusão de veículos.
+- **RF11:** O sistema deve permitir a exclusão de veículos, desde que não possuam ordens de serviço vinculadas. Tentativa de excluir veículo com vínculo deve retornar erro HTTP 422.
 
 ### 2.3 Gestão de Peças e Insumos
 - **RF12:** O sistema deve permitir o cadastro de peças e insumos, informando nome, descrição, quantidade em estoque, valor unitário e estoque mínimo (padrão: 5 unidades).
@@ -128,7 +128,6 @@ Exemplos de critérios para requisitos principais:
 
 - **RF28 (Consulta Pública de Status):**
 	- Qualquer usuário (sem autenticação) deve conseguir consultar o status de uma OS pelo número legível via `GET /api/ordens-servico/numero/{numero}/status`, informando o número da OS (ex: `OS-2026-00001`).
-	- O endpoint por ID interno `GET /api/ordens-servico/{id}/status` também permanece público para uso interno.
 	- O status retornado deve refletir o estado real da OS no sistema.
 	- O campo `mecanicoNome` deve ser retornado no tracking pelo número, identificando o profissional que realizou o serviço (nulo enquanto o diagnóstico não tiver sido iniciado).
 

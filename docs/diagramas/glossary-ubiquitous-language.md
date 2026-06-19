@@ -15,8 +15,8 @@
 
 | Termo | Tipo | Definição | Bounded Context |
 |-------|------|-----------|-----------------|
-| **Cliente** | Aggregate Root | Identificado por CPF/CNPJ. Deve ser identificado antes de criar uma OS. Pode possuir vários veículos. | Atendimento |
-| **Veículo** | Entity | Identificado por Placa (formato Mercosul). Vinculado a um único Cliente. Possui marca, modelo e ano. | Atendimento |
+| **Cliente** | Aggregate Root | Identificado por CPF/CNPJ. Deve ser identificado antes de criar uma OS. Pode possuir vários veículos. Não pode ser excluído enquanto possuir veículo vinculado ao sistema, nem se possuir Ordem de Serviço vinculada. | Atendimento |
+| **Veículo** | Aggregate Root | Identificado por Placa (formato Mercosul). Vinculado a um único Cliente. Possui marca, modelo e ano. Não pode ser excluído enquanto possuir Ordem de Serviço vinculada. | Atendimento |
 | **Ordem de Serviço (OS)** | Aggregate Root | Documento central do sistema. Registra todo o ciclo de atendimento desde a recepção até o encerramento. Contém itens (peças e serviços). | Ordem de Serviço |
 | **Item da OS** | Entity | Linha da OS representando um serviço ou peça aplicado, com quantidade e valor unitário. Referencia o catálogo via `referenciaId`. | Ordem de Serviço |
 | **Peça** | Aggregate Root | Material físico com controle de estoque (quantidade disponível e estoque mínimo configurável por peça). Permite baixa, reposição e alerta de estoque baixo. | Estoque |

@@ -7,6 +7,7 @@ import br.com.oficina.application.exception.RecursoNaoEncontradoException;
 import br.com.oficina.domain.atendimento.cliente.ClienteRepository;
 import br.com.oficina.domain.atendimento.veiculo.Veiculo;
 import br.com.oficina.domain.atendimento.veiculo.VeiculoRepository;
+import br.com.oficina.domain.ordemservico.OrdemDeServicoRepository;
 import br.com.oficina.domain.atendimento.veiculo.vo.Placa;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class VeiculoService {
 
     private final VeiculoRepository veiculoRepository;
     private final ClienteRepository clienteRepository;
+    private final OrdemDeServicoRepository ordemDeServicoRepository;
 
     @Transactional
     public VeiculoResponse criar(VeiculoRequest req) {
@@ -64,7 +66,10 @@ public class VeiculoService {
 
     @Transactional
     public void excluir(Long id) {
-        findById(id); // garante que existe
+        findById(id);
+        if (!ordemDeServicoRepository.listarPorVeiculo(id).isEmpty()) {
+        throw new NegocioException("Não é possível excluir veículo com Ordem de Serviço vinculada.");
+        }
         veiculoRepository.excluir(id);
     }
 
