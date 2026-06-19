@@ -9,6 +9,8 @@ import br.com.oficina.domain.atendimento.cliente.vo.CpfCnpj;
 import br.com.oficina.domain.atendimento.veiculo.Veiculo;
 import br.com.oficina.domain.atendimento.veiculo.VeiculoRepository;
 import br.com.oficina.domain.atendimento.veiculo.vo.Placa;
+import br.com.oficina.domain.ordemservico.OrdemDeServico;
+import br.com.oficina.domain.ordemservico.OrdemDeServicoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +36,7 @@ class VeiculoServiceTest {
 
     @Mock private VeiculoRepository veiculoRepo;
     @Mock private ClienteRepository clienteRepo;
+    @Mock private OrdemDeServicoRepository ordemDeServicoRepository;
 
     @InjectMocks
     private VeiculoService service;
@@ -137,7 +140,19 @@ class VeiculoServiceTest {
     @Story("Excluir veículo")
     void excluir() {
         when(veiculoRepo.buscarPorId(10L)).thenReturn(Optional.of(veiculo));
+        when(ordemDeServicoRepository.listarPorVeiculo(10L)).thenReturn(List.of());
         service.excluir(10L);
         verify(veiculoRepo).excluir(10L);
+    }
+
+    @Test
+    @Story("Rejeitar exclusao de veiculo com OS vinculada")
+    void naoDeveExcluirVeiculoComOrdemDeServicoVinculada() {
+        when(veiculoRepo.buscarPorId(10L)).thenReturn(Optional.of(veiculo));
+        when(ordemDeServicoRepository.listarPorVeiculo(10L))
+                .thenReturn(List.of(mock(OrdemDeServico.class)));
+
+        assertThrows(NegocioException.class, () -> service.excluir(10L));
+        verify(veiculoRepo, never()).excluir(any());
     }
 }
