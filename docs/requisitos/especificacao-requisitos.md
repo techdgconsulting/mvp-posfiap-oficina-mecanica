@@ -65,6 +65,9 @@ Principais benefícios esperados:
 - **RF35:** O sistema deve permitir a listagem de ordens de serviço filtradas por status.
 - **RF36:** O sistema deve permitir a entrega do veículo ao cliente (status `AGUARDANDO_RETIRADA` → `ENTREGUE`), criando automaticamente o registro de `Entrega` e o `Encerramento` da OS.
 - **RF37:** O sistema deve expor métricas de tempo das OS: (a) média global (`GET /metricas/tempo-medio`) retornando `tempoMedioExecucao` (dataCriacao → dataFinalizacao) e `tempoMedioAtendimento` (dataCriacao → dataEntrega) em formato legível (ex: "2h 30min", "1d 4h"); (b) breakdown individual por OS (`GET /{id}/metricas`) com todas as datas e tempos calculados. Acesso restrito ao perfil GESTOR.
+- **RF39:** O sistema deve permitir a listagem da fila operacional de OS via `GET /api/ordens-servico/fila`, incluindo apenas `EM_EXECUCAO`, `AGUARDANDO_APROVACAO`, `EM_DIAGNOSTICO` e `RECEBIDA`, ordenadas por prioridade operacional e, dentro do mesmo status, por `dataCriacao` ascendente. OS em `FINALIZADA`, `AGUARDANDO_RETIRADA`, `ENTREGUE` e `CANCELADA` devem ser excluídas da fila.
+- **RF40:** O sistema deve permitir decisão externa de orçamento pelo cliente por meio de token opaco enviado ao e-mail cadastrado. A notificação é disparada por usuário interno autorizado via `POST /api/ordens-servico/{id}/orcamento/notificar-cliente`; a aprovação ou recusa ocorre por endpoints públicos `POST /api/orcamentos/decisoes-cliente/{token}/aprovar` e `POST /api/orcamentos/decisoes-cliente/{token}/recusar`, sem JWT, mas com validação de token, expiração e uso único.
+- **RF41:** O sistema deve enviar notificação informativa por e-mail ao cliente cadastrado quando a OS tiver mudança relevante de status, sem substituir a consulta de status por API e sem bloquear a transição caso o envio falhe.
 
 ### 2.6 Segurança e Autenticação
 - **RF30:** O sistema deve permitir autenticação de usuários via JWT.
@@ -131,6 +134,25 @@ Exemplos de critérios para requisitos principais:
 	- O status retornado deve refletir o estado real da OS no sistema.
 	- O campo `mecanicoNome` deve ser retornado no tracking pelo número, identificando o profissional que realizou o serviço (nulo enquanto o diagnóstico não tiver sido iniciado).
 
+- **RF39 (Fila Operacional de OS):**
+	- A fila operacional deve ser consultada via `GET /api/ordens-servico/fila`.
+	- A listagem deve incluir somente OS nos status `EM_EXECUCAO`, `AGUARDANDO_APROVACAO`, `EM_DIAGNOSTICO` e `RECEBIDA`.
+	- A ordenação deve seguir a prioridade `EM_EXECUCAO` → `AGUARDANDO_APROVACAO` → `EM_DIAGNOSTICO` → `RECEBIDA`; dentro do mesmo status, OS mais antigas devem aparecer primeiro.
+	- OS em `FINALIZADA`, `AGUARDANDO_RETIRADA`, `ENTREGUE` ou `CANCELADA` não devem aparecer na fila.
+
+- **RF40 (Decisão Externa de Orçamento):**
+	- A decisão externa deve ser iniciada por usuário `ATENDENTE` ou `GESTOR`, após existir orçamento ativo para a OS.
+	- O sistema deve gerar token opaco, armazenar apenas seu hash, definir expiração e enviar os links de aprovação/recusa ao e-mail do cliente pelo adapter configurado (`LOG` ou `SMTP`).
+	- Os endpoints públicos de decisão não devem exigir JWT, mas devem aceitar somente token válido, pendente e não expirado.
+	- A aprovação externa deve reaproveitar a mesma regra de negócio da aprovação interna, incluindo avanço da OS para `EM_EXECUCAO` e baixa de estoque das peças.
+	- A recusa externa deve reaproveitar a mesma regra de negócio da rejeição interna, cancelando a OS conforme máquina de estados.
+
+- **RF41 (Notificação Informativa de Status da OS):**
+	- A notificação deve ocorrer de forma automática após transições persistidas da OS para `RECEBIDA`, `EM_DIAGNOSTICO`, `AGUARDANDO_APROVACAO`, `EM_EXECUCAO`, `FINALIZADA`, `AGUARDANDO_RETIRADA`, `ENTREGUE` ou `CANCELADA`.
+	- O e-mail deve ser informativo, contendo número da OS, status atual e link público de acompanhamento por número da OS.
+	- O envio deve usar a porta `EmailNotificacaoPort`, permitindo modo local `LOG`, modo real `SMTP` e desativação controlada por configuração.
+	- Falhas de envio não devem impedir a criação da OS nem a atualização do status; o erro deve ser registrado em log.
+
 - **RNF04 (Segurança):**
 	- Operações de cadastro, atualização e exclusão só podem ser realizadas por usuários autenticados.
 	- O token JWT inválido ou expirado deve bloquear o acesso.
@@ -146,7 +168,10 @@ Exemplos de critérios para requisitos principais:
 | RF12      | POST /api/pecas, PecaController, PecaService |
 | RF19      | POST /api/servicos, ServicoController, ServicoService |
 | RF24      | POST /api/ordens-servico, OrdemDeServicoController, OrdemDeServicoService |
-| RF28      | GET /api/ordens-servico/numero/{numero}/status (público), GET /api/ordens-servico/{id}/status (público), OrdemDeServicoController, OrdemServicoResponse.mecanicoNome |
+| RF28      | GET /api/ordens-servico/numero/{numero}/status (público), GET /api/ordens-servico/{id}/status (autenticado), OrdemDeServicoController, OrdemServicoResponse.mecanicoNome |
+| RF39      | GET /api/ordens-servico/fila, ListarFilaOrdensServicoInputPort, OrdemDeServicoRepositoryPort.listarFilaOperacional, SpringDataOrdemDeServicoRepository.findFilaOperacional |
+| RF40      | POST /api/ordens-servico/{id}/orcamento/notificar-cliente, POST /api/orcamentos/decisoes-cliente/{token}/aprovar, POST /api/orcamentos/decisoes-cliente/{token}/recusar, OrcamentoDecisaoClienteUseCase, OrcamentoDecisaoClienteRepositoryPort, EmailNotificacaoPort, TokenSeguroPort |
+| RF41      | NotificarStatusOrdemServicoInputPort, NotificarStatusOrdemServicoUseCase, EmailNotificacaoPort, LogEmailNotificacaoAdapter, SmtpEmailNotificacaoAdapter, DisabledEmailNotificacaoAdapter |
 | RF30, RF31 | POST /api/auth/login, POST /api/auth/registro, AuthController, JwtService |
 | RF38      | SecurityConfig (AntPathRequestMatcher + RBAC), PerfilUsuario, @PreAuthorize nos controllers, V13 migration (usuários de demonstração) |
 

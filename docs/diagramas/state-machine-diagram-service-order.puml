@@ -17,10 +17,11 @@ EM_EXECUCAO --> AGUARDANDO_APROVACAO : Problema Identificado\n(novo orçamento)
 EM_EXECUCAO --> FINALIZADA : Serviço Finalizado
 
 FINALIZADA --> AGUARDANDO_RETIRADA : Pagamento Aprovado
+FINALIZADA --> FINALIZADA : Pagamento Recusado\n(nova tentativa permitida)
 
 AGUARDANDO_RETIRADA --> ENTREGUE : Veículo Entregue
 
-ENTREGUE --> [*] : OS Encerrada
+ENTREGUE --> [*] : OS Encerrada\nautomaticamente
 
 RECEBIDA : OS criada
 RECEBIDA : Veículo recepcionado
@@ -36,12 +37,17 @@ EM_EXECUCAO : realizados
 
 FINALIZADA : Serviços concluídos
 FINALIZADA : Aguardando pagamento
+FINALIZADA : Pagamento recusado
+FINALIZADA : mantém este estado
 
 AGUARDANDO_RETIRADA : Pagamento aprovado
 AGUARDANDO_RETIRADA : aguardando retirada
+AGUARDANDO_RETIRADA : veículo liberado
 
 ENTREGUE : Veículo devolvido
 ENTREGUE : ao cliente
+ENTREGUE : estado terminal
+ENTREGUE : encerramento criado
 
 CANCELADA : OS cancelada
 CANCELADA : pelo cliente
@@ -59,7 +65,7 @@ title Máquina de Estados - Entrega do Veículo
 AGUARDANDO_LIBERACAO --> VEICULO_LIBERADO : Pagamento Aprovado
 
 VEICULO_LIBERADO --> VEICULO_ENTREGUE : Cliente retirou
-VEICULO_LIBERADO --> VEICULO_EM_PATIO : Cliente não retirou
+VEICULO_LIBERADO --> VEICULO_EM_PATIO : Cliente não retirou\n(extensão futura)
 
 VEICULO_EM_PATIO --> VEICULO_ENTREGUE : Cliente retirou
 
@@ -72,6 +78,8 @@ VEICULO_LIBERADO : para retirada
 
 VEICULO_EM_PATIO : Veículo no pátio
 VEICULO_EM_PATIO : aguardando retirada
+VEICULO_EM_PATIO : modelado no domínio
+VEICULO_EM_PATIO : não é fluxo principal
 
 VEICULO_ENTREGUE : Veículo devolvido
 VEICULO_ENTREGUE : ao cliente

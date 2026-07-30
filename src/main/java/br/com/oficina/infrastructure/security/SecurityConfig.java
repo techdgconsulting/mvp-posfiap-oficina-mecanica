@@ -8,7 +8,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -16,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -27,47 +27,61 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        var paths = PathPatternRequestMatcher.withDefaults();
+
         http
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // endpoints públicos
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/**")).permitAll()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/swagger-ui/**")).permitAll()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api-docs/**")).permitAll()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/v3/api-docs/**")).permitAll()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/swagger-ui.html")).permitAll()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
+                .requestMatchers(paths.matcher("/api/auth/**")).permitAll()
+                .requestMatchers(paths.matcher("/swagger-ui/**")).permitAll()
+                .requestMatchers(paths.matcher("/api-docs.yaml")).permitAll()
+                .requestMatchers(paths.matcher("/api-docs/**")).permitAll()
+                .requestMatchers(paths.matcher("/v3/api-docs.yaml")).permitAll()
+                .requestMatchers(paths.matcher("/v3/api-docs/**")).permitAll()
+                .requestMatchers(paths.matcher("/swagger-ui.html")).permitAll()
+                .requestMatchers(paths.matcher("/h2-console/**")).permitAll()
+                .requestMatchers(paths.matcher("/actuator/health/**")).permitAll()
+                .requestMatchers(paths.matcher("/actuator/info")).permitAll()
                 // Necessário para error dispatch do Tomcat (403 → /error) não ser sobrescrito por 401
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/error")).permitAll()
+                .requestMatchers(paths.matcher("/error")).permitAll()
 
                 // consulta de status pelo número da OS (público, sem token) — usa numero da OS, não ID interno
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET, "/api/ordens-servico/numero/*/status")).permitAll()
+                .requestMatchers(paths.matcher(HttpMethod.GET, "/api/ordens-servico/numero/*/status")).permitAll()
+                // decisão externa de orçamento por token opaco enviado ao cliente
+                .requestMatchers(paths.matcher(HttpMethod.POST, "/api/orcamentos/decisoes-cliente/*/aprovar")).permitAll()
+                .requestMatchers(paths.matcher(HttpMethod.POST, "/api/orcamentos/decisoes-cliente/*/recusar")).permitAll()
 
                 // GESTOR only — catálogo de peças e serviços
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pecas/**")).hasRole("GESTOR")
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/servicos/**")).hasRole("GESTOR")
+                .requestMatchers(paths.matcher("/api/pecas/**")).hasRole("GESTOR")
+                .requestMatchers(paths.matcher("/api/servicos/**")).hasRole("GESTOR")
+
+                // fila operacional — acompanhamento por atendimento, mecânica e gestão
+                .requestMatchers(paths.matcher(HttpMethod.GET, "/api/ordens-servico/fila")).hasAnyRole("ATENDENTE", "MECANICO", "GESTOR")
 
                 // GESTOR only — OS: listar todas, listar por status, métricas
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET, "/api/ordens-servico")).hasRole("GESTOR")
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET, "/api/ordens-servico/status/*")).hasRole("GESTOR")
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET, "/api/ordens-servico/metricas/*")).hasRole("GESTOR")
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET, "/api/ordens-servico/*/metricas")).hasRole("GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.GET, "/api/ordens-servico")).hasRole("GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.GET, "/api/ordens-servico/status/*")).hasRole("GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.GET, "/api/ordens-servico/metricas/*")).hasRole("GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.GET, "/api/ordens-servico/*/metricas")).hasRole("GESTOR")
 
                 // MECANICO ou GESTOR — diagnóstico e execução
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/api/ordens-servico/*/iniciar-diagnostico")).hasAnyRole("MECANICO", "GESTOR")
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/api/ordens-servico/*/finalizar")).hasAnyRole("MECANICO", "GESTOR")
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/ordens-servico/*/itens")).hasAnyRole("MECANICO", "GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.PATCH, "/api/ordens-servico/*/iniciar-diagnostico")).hasAnyRole("MECANICO", "GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.PATCH, "/api/ordens-servico/*/finalizar")).hasAnyRole("MECANICO", "GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.POST, "/api/ordens-servico/*/itens")).hasAnyRole("MECANICO", "GESTOR")
 
                 // ATENDENTE ou GESTOR — recepção e faturamento
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/ordens-servico")).hasAnyRole("ATENDENTE", "GESTOR")
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/ordens-servico/*/orcamento")).hasAnyRole("ATENDENTE", "GESTOR")
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/api/ordens-servico/*/pagamento")).hasAnyRole("ATENDENTE", "GESTOR")
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/api/ordens-servico/*/aprovar")).hasAnyRole("ATENDENTE", "GESTOR")
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/api/ordens-servico/*/rejeitar")).hasAnyRole("ATENDENTE", "GESTOR")
-                .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/api/ordens-servico/*/entregar")).hasAnyRole("ATENDENTE", "GESTOR")
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/clientes/**")).hasAnyRole("ATENDENTE", "GESTOR")
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/veiculos/**")).hasAnyRole("ATENDENTE", "GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.POST, "/api/ordens-servico")).hasAnyRole("ATENDENTE", "GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.POST, "/api/ordens-servico/completa")).hasAnyRole("ATENDENTE", "GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.POST, "/api/ordens-servico/*/orcamento")).hasAnyRole("ATENDENTE", "GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.POST, "/api/ordens-servico/*/orcamento/notificar-cliente")).hasAnyRole("ATENDENTE", "GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.POST, "/api/ordens-servico/*/pagamento")).hasAnyRole("ATENDENTE", "GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.PATCH, "/api/ordens-servico/*/aprovar")).hasAnyRole("ATENDENTE", "GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.PATCH, "/api/ordens-servico/*/rejeitar")).hasAnyRole("ATENDENTE", "GESTOR")
+                .requestMatchers(paths.matcher(HttpMethod.PATCH, "/api/ordens-servico/*/entregar")).hasAnyRole("ATENDENTE", "GESTOR")
+                .requestMatchers(paths.matcher("/api/clientes/**")).hasAnyRole("ATENDENTE", "GESTOR")
+                .requestMatchers(paths.matcher("/api/veiculos/**")).hasAnyRole("ATENDENTE", "GESTOR")
 
                 // demais endpoints autenticados (GET OS por id/numero, etc.)
                 .anyRequest().authenticated()

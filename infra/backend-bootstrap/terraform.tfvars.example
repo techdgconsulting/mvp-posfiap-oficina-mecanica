@@ -1,0 +1,5 @@
+aws_region        = "us-east-1"
+project_name      = "oficina-dgcar"
+environment       = "academic"
+state_bucket_name = "oficina-dgcar-academic-tfstate-substitua-por-sufixo-unico"
+lock_table_name   = "oficina-dgcar-academic-terraform-lock"

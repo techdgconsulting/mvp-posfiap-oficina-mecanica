@@ -13,7 +13,7 @@ O projeto precisa de uma estratégia de testes abrangente que valide as regras d
 
 O desafio é selecionar ferramentas que:
 1. Cubram os três níveis de teste: unitário puro, serviço com mocks e controller com MockMvc
-2. Sejam compatíveis com Java 17, Spring Boot 3.3.5 e Spring Security 6.3.x
+2. Sejam compatíveis com Java 17, Spring Boot 3.5.16 e Spring Security gerenciado pelo BOM do Spring Boot
 3. Permitam isolamento real do banco em CI/CD
 4. Gerem relatório de cobertura automaticamente no build Maven
 
@@ -23,12 +23,20 @@ O desafio é selecionar ferramentas que:
 
 Adoção da **pirâmide de testes** com três camadas distintas, usando o stack a seguir.
 
+### Evidência local atual
+
+| Métrica | Valor | Fonte |
+|---|---:|---|
+| Classes de teste | 39 | `src/test/**/*.java` |
+| Testes executados | 358 | última execução local de `mvn test` |
+| Cobertura de instruções | 95,09% | `target/site/jacoco/jacoco.csv` |
+
 ---
 
 ## Stack de Testes — Versões Resolvidas
 
 > Todas as versões abaixo são as versões **resolvidas em tempo de build** (`mvn dependency:list`).  
-> Dependências sem versão explícita no `pom.xml` são gerenciadas pelo BOM do `spring-boot-starter-parent 3.3.5`.
+> Dependências sem versão explícita no `pom.xml` são gerenciadas pelo BOM do `spring-boot-starter-parent 3.5.16`.
 
 ### Núcleo de Testes
 
@@ -57,8 +65,8 @@ Adoção da **pirâmide de testes** com três camadas distintas, usando o stack 
 
 | Artefato | Versão | Papel no projeto |
 |---|---|---|
-| `org.springframework.boot:spring-boot-starter-test` | **3.3.5** | BOM de testes: agrega JUnit 5, Mockito, AssertJ, Hamcrest, MockMvc, JsonPath, etc. |
-| `org.springframework.security:spring-security-test` | **6.3.4** | Suporte a `@WithMockUser`, `SecurityMockMvcRequestPostProcessors.csrf()`, `@WithUserDetails` |
+| `org.springframework.boot:spring-boot-starter-test` | **3.5.16** | BOM de testes: agrega JUnit 5, Mockito, AssertJ, Hamcrest, MockMvc, JsonPath, etc. |
+| `org.springframework.security:spring-security-test` | **managed** | Suporte a `@WithMockUser`, `SecurityMockMvcRequestPostProcessors.csrf()`, `@WithUserDetails` |
 
 ### Banco de Dados para Testes
 
@@ -70,11 +78,11 @@ Adoção da **pirâmide de testes** com três camadas distintas, usando o stack 
 
 | Artefato | Versão | Papel no projeto |
 |---|---|---|
-| `org.testcontainers:junit-jupiter` | **1.19.8** | Integração Testcontainers ↔ JUnit 5 (`@Testcontainers`, `@Container`) |
-| `org.testcontainers:postgresql` | **1.19.8** | Container PostgreSQL para testes de integração com banco real |
-| `org.testcontainers:testcontainers` | **1.19.8** | Núcleo do Testcontainers |
-| `org.testcontainers:database-commons` | **1.19.8** | Utilitários comuns para containers de banco de dados |
-| `org.testcontainers:jdbc` | **1.19.8** | Suporte ao protocolo JDBC sobre containers |
+| `org.testcontainers:junit-jupiter` | **managed** | Integração Testcontainers ↔ JUnit 5 (`@Testcontainers`, `@Container`) |
+| `org.testcontainers:postgresql` | **managed** | Container PostgreSQL para testes de integração com banco real |
+| `org.testcontainers:testcontainers` | **managed** | Núcleo do Testcontainers |
+| `org.testcontainers:database-commons` | **managed** | Utilitários comuns para containers de banco de dados |
+| `org.testcontainers:jdbc` | **managed** | Suporte ao protocolo JDBC sobre containers |
 
 > **Nota:** Testcontainers está declarado no `pom.xml` como dependência de teste, mas **não é utilizado nos testes atuais** (os testes usam H2). Está disponível como ponto de extensão para testes de integração com PostgreSQL real em pipelines CI.
 
@@ -89,7 +97,6 @@ Adoção da **pirâmide de testes** com três camadas distintas, usando o stack 
 | Artefato | Versão | Papel no projeto |
 |---|---|---|
 | `io.qameta.allure:allure-junit5` | **2.27.0** | Listener JUnit 5 que intercepta cada `@Test` e grava resultado em `target/allure-results/` |
-| `org.aspectj:aspectjweaver` | **1.9.22.1** | Java agent requerido pelo Allure para captura de metadados via AOP em tempo de execução |
 | `io.qameta.allure:allure-maven` | **2.12.0** | Plugin Maven (`mvn allure:report`) que converte `allure-results/` em HTML interativo |
 
 ### Plugin de Execução
@@ -105,18 +112,18 @@ Adoção da **pirâmide de testes** com três camadas distintas, usando o stack 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  CAMADA 3 — Controller Tests (@WebMvcTest + MockMvc)            │
-│  Anota: @WebMvcTest, @MockBean, @Import(SecurityConfig.class)   │
-│  Simula: HTTP, autenticação JWT, respostas JSON                 │
+│  Anota: @WebMvcTest, @MockitoBean, @Import(SecurityConfig.class)│
+│  Simula: HTTP, usuário autenticado, RBAC e respostas JSON       │
 │  Ferramentas: Spring MockMvc, @WithMockUser, spring-security-test│
 ├─────────────────────────────────────────────────────────────────┤
-│  CAMADA 2 — Service Tests (@ExtendWith(MockitoExtension))       │
-│  Anota: @Mock, @InjectMocks, @Captor                            │
-│  Simula: repositórios, gateways, clientes HTTP                  │
+│  CAMADA 2 — Use Case Tests (@ExtendWith(MockitoExtension))      │
+│  Anota: @Mock; eventualmente @InjectMocks e @Captor             │
+│  Simula: repositórios, gateways, clientes HTTP e ports de saída │
 │  Ferramentas: Mockito 5.11.0, AssertJ 3.25.3                   │
 ├─────────────────────────────────────────────────────────────────┤
-│  CAMADA 1 — Domain Tests (JUnit puro, zero dependências)        │
+│  CAMADA 1 — Domain Tests (JUnit puro, sem Spring)               │
 │  Anota: @Test, @ParameterizedTest, @ValueSource                 │
-│  Valida: entidades, VOs, máquinas de estado, cálculos           │
+│  Valida: entidades, VOs, estados, invariantes e cálculos        │
 │  Ferramentas: JUnit Jupiter 5.10.5, AssertJ 3.25.3             │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -125,13 +132,14 @@ Adoção da **pirâmide de testes** com três camadas distintas, usando o stack 
 
 | Pacote testado | Camada de teste | Anotação principal | Banco |
 |---|---|---|---|
-| `domain.*` | Unitário puro | `@Test` | Nenhum |
-| `application.service.*` | Service com mocks | `@ExtendWith(MockitoExtension.class)` | Nenhum |
-| `infrastructure.security.*` | Unitário/integração leve | `@ExtendWith(MockitoExtension.class)` | Nenhum |
-| `infrastructure.client.*` | Unitário com mock HTTP | `@ExtendWith(MockitoExtension.class)` | Nenhum |
-| `infrastructure.gateway.*` | Unitário puro | `@Test` | Nenhum |
-| `interfaces.api.*` | Controller (web slice) | `@WebMvcTest` + `MockMvc` | H2 via SecurityConfig |
-| `OficinaMecanicaDGCARApplication` | Integração completa | `@SpringBootTest` | H2 (perfil `test`) |
+| `domain.model.*` / `domain.valueobject.*` | Unitário puro | `@Test` / `@ParameterizedTest` | Nenhum |
+| `application.usecase.*` | Use case com mocks | `@ExtendWith(MockitoExtension.class)` | Nenhum |
+| `adapters.in.web.controller.*` | Controller (web slice) | `@WebMvcTest` + `MockMvc` | Nenhum |
+| `adapters.out.persistence.*` | Adapter de persistência | Testes focados por adapter | H2 quando necessário |
+| `adapters.out.payment.*` | Gateway mock | `@Test` | Nenhum |
+| `adapters.out.security.*` / `infrastructure.security.*` | Segurança/JWT | Unitário e slice web | Nenhum |
+| `infrastructure.client.*` | Cliente externo (ViaCEP) | Unitário com mock HTTP | Nenhum |
+| `coverage.*` | Cobertura de cenários residuais | JUnit 5 | Conforme classe |
 
 ---
 
@@ -144,8 +152,8 @@ O `SecurityConfig` está no pacote `infrastructure`, fora do escopo de auto-scan
 @Import(SecurityConfig.class)           // Carrega manualmente a config de segurança
 class ClienteControllerTest {
 
-    @MockBean JwtService jwtService;            // Evita falha ao construir o filtro JWT
-    @MockBean UserDetailsService userDetailsService; // Idem para o UserDetailsService
+    @MockitoBean TokenProviderPort tokenProviderPort; // Evita falha ao construir o filtro JWT
+    @MockitoBean UserDetailsService userDetailsService; // Idem para o UserDetailsService
 
     @WithMockUser(roles = "GESTOR")     // Simula usuário autenticado com perfil GESTOR
     @Test
@@ -158,28 +166,30 @@ class ClienteControllerTest {
 
 ---
 
-## Perfil de Teste (`application-test.yml`)
+## Perfil de Teste (`application.yml`, profile `test`)
 
 ```yaml
 spring:
+  config:
+    activate:
+      on-profile: test
   datasource:
-    url: jdbc:h2:mem:oficina-test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:oficina-test
     driver-class-name: org.h2.Driver
   jpa:
     hibernate:
-      ddl-auto: none         # Flyway controla o schema
+      ddl-auto: create-drop
   flyway:
-    enabled: true
-    locations: classpath:db/migration
+    enabled: false
 ```
 
-O H2 roda em modo `PostgreSQL` para maior compatibilidade com as migrations Flyway.
+No estado atual, os testes automatizados priorizam velocidade e isolamento: o schema H2 é recriado pelo Hibernate e o Flyway permanece desabilitado no perfil `test`. As migrations Flyway são validadas no ambiente PostgreSQL principal/Docker, conforme ADR-005.
 
 ---
 
 ## Configuração Allure Report
 
-Todos os testes estão anotados com as anotações de metadados do Allure:
+Os testes principais estão anotados com metadados do Allure:
 
 ```java
 @Epic("Ordem de Serviço")          // Agrupamento de alto nível (domínio de negócio)
@@ -196,15 +206,15 @@ class OrdemDeServicoControllerTest {
 
 | Epic | Pacotes cobertos |
 |---|---|
-| Atendimento ao Cliente | `domain/atendimento/**`, `application.service.ClienteService`, `application.service.VeiculoService`, `interfaces.api.ClienteController`, `interfaces.api.VeiculoController` |
-| Ordem de Serviço | `domain/ordemservico/**`, `application.service.OrdemDeServicoService`, `interfaces.api.OrdemDeServicoController` |
-| Execução Técnica | `domain/execucao/**`, `domain/encerramento/**`, `domain/entrega/**` |
-| Gestão de Estoque | `domain/estoque/**`, `application.service.PecaService`, `interfaces.api.PecaController` |
-| Catálogo de Serviços | `domain/servico/**`, `application.service.ServicoService`, `interfaces.api.ServicoController` |
-| Faturamento | `domain/financeiro/**`, `domain/orcamento/**` |
-| Segurança e Autenticação | `infrastructure/security/**`, `interfaces.api.AuthController` |
-| Integrações Externas | `infrastructure/gateway/**`, `infrastructure/client/**` |
-| Aplicação | `OficinaMecanicaDGCARApplicationTests` |
+| Atendimento ao Cliente | `domain/model/**`, `domain/valueobject/**`, `application/usecase/*Cliente*`, `application/usecase/*Veiculo*`, `adapters/in/web/controller/*Cliente*`, `adapters/in/web/controller/*Veiculo*` |
+| Ordem de Serviço | `domain/model/OrdemDeServico`, `application/usecase/*Ordem*`, `adapters/in/web/controller/OrdemDeServicoController` |
+| Execução Técnica | `domain/model/Diagnostico`, `domain/model/Execucao`, `domain/model/Entrega`, `domain/model/Encerramento` |
+| Gestão de Estoque | `domain/model/Peca`, `application/usecase/*Peca*`, `adapters/in/web/controller/PecaController` |
+| Catálogo de Serviços | `domain/model/Servico`, `application/usecase/*Servico*`, `adapters/in/web/controller/ServicoController` |
+| Faturamento | `domain/model/Pagamento`, `domain/model/Orcamento`, `adapters/out/payment/**` |
+| Segurança e Autenticação | `infrastructure/security/**`, `adapters/out/security/**`, `adapters/in/web/controller/AuthController` |
+| Integrações Externas | `adapters/out/payment/**`, `infrastructure/client/**`, `adapters/out/viacep/**` |
+| Aplicação | `application/usecase/**`, `coverage/**` |
 
 **Configuração `maven-surefire-plugin`** (argLine JaCoCo):
 
@@ -237,6 +247,8 @@ Relatório gerado em: `target/allure-report/index.html`
 
 ## Configuração JaCoCo
 
+O endpoint `POST /api/ordens-servico/completa` possui cobertura específica em teste de controller (`OrdemDeServicoControllerTest`) e teste de caso de uso (`CriarOrdemServicoCompletaUseCaseTest`), validando o contrato HTTP e as regras de reaproveitamento/criação de cliente e veículo.
+
 ```xml
 <plugin>
   <groupId>org.jacoco</groupId>
@@ -244,7 +256,6 @@ Relatório gerado em: `target/allure-report/index.html`
   <version>0.8.12</version>
   <configuration>
     <excludes>
-      <exclude>**/persistence/*JpaRepository*</exclude>
       <exclude>**/OficinaMecanicaDGCARApplication.class</exclude>
     </excludes>
   </configuration>
@@ -270,8 +281,8 @@ Relatório gerado em: `target/site/jacoco/index.html`
 | **Testcontainers com PostgreSQL real** | Disponível no `pom.xml`; preferiu-se H2 nos testes atuais por velocidade. Extensão natural para CI/CD com banco real |
 | **Arquillian** | Overengineering para o escopo do projeto |
 | **REST Assured** | `MockMvc` (embutido no Spring) cobre todos os cenários necessários sem dependência adicional |
-| **WireMock (mocks HTTP externos)** | Mockito + `@MockBean` suficientes para mockar `ViaCepClient` e `MockPagamentoGateway` |
-| **Banco PostgreSQL embutido (pg-embedded)** | H2 em modo PostgreSQL oferece compatibilidade adequada sem sobrecusto de startup |
+| **WireMock (mocks HTTP externos)** | Mockito + `@MockitoBean` suficientes para mockar ports e adapters como `TokenProviderPort`, `ViaCepClient` e `MockPagamentoGatewayAdapter` |
+| **Banco PostgreSQL embutido (pg-embedded)** | H2 em memória oferece startup simples para a suíte atual; PostgreSQL real fica concentrado no ambiente Docker e em futura evolução com Testcontainers |
 | **Allure vs. Surefire HTML puro** | Surefire gera relatório básico; Allure oferece agrupamento por Epic/Feature/Story, gráficos de tendência, histórico de execuções e drill-down por teste — justifica a dependência extra |
 
 ---
@@ -279,14 +290,14 @@ Relatório gerado em: `target/site/jacoco/index.html`
 ## Consequências
 
 ### Positivas
-- **Velocidade:** testes de domínio e service em < 100 ms por classe (sem I/O)
+- **Velocidade:** testes de domínio e use cases em < 100 ms por classe (sem I/O)
 - **Isolamento:** cada camada testada sem dependências das camadas superiores
-- **Cobertura alta:** 99% de instruções — detecta regressões com confiança
+- **Cobertura alta:** 95,09% de instruções na evidência local atual — detecta regressões com confiança
 - **RBAC validado:** testes de negação (403) em todas as regras de perfil dos controllers
 - **Relatório de cobertura:** JaCoCo gera HTML a cada `mvn test jacoco:report`
 - **Relatório de testes:** Allure gera dashboard interativo via `allure-report.ps1` (Windows) com agrupamento por Epic/Feature/Story, histórico e tendências
 
 ### Negativas
-- H2 em modo PostgreSQL não cobre 100% das features específicas do PostgreSQL (ex: `JSONB`, funções nativas)
+- H2 em memória não cobre 100% das features específicas do PostgreSQL (ex: dialeto, constraints específicas, funções nativas)
 - Testes de controller (`@WebMvcTest`) exigem `@Import(SecurityConfig.class)` manual — acoplamento frágil que pode ser esquecido ao criar novos tests
 - Testcontainers declarados no `pom.xml` mas não utilizados nos testes atuais — pode gerar confusão sobre qual banco usar em testes de integração futuros

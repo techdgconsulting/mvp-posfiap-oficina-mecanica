@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.annotations.servers.Server;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
@@ -18,6 +19,10 @@ import org.springframework.context.annotation.Configuration;
                         "Endpoint publico (sem token): GET /api/ordens-servico/numero/{numero}/status - permite ao cliente rastrear o status da OS pelo numero impresso no comprovante.",
                 contact = @Contact(name = "Tech Challenge FIAP - Grupo DGCAR")
         ),
+        servers = {
+                @Server(url = "http://localhost:8080", description = "Ambiente local"),
+                @Server(url = "http://127.0.0.1:8080", description = "Ambiente local via loopback")
+        },
         security = @SecurityRequirement(name = "bearerAuth")
 )
 @SecurityScheme(

@@ -11,7 +11,11 @@ O sistema precisa de persistência relacional para entidades com relacionamentos
 
 ## Decisão
 
-Adotar **PostgreSQL 16** como banco de dados relacional, executado via Docker (imagem `postgres:16-alpine`).
+Adotar **PostgreSQL 16** como banco de dados relacional principal, executado via Docker no ambiente recomendado (`postgres:16-alpine`).
+
+No perfil padrão, a aplicação aponta para PostgreSQL em `localhost:5432` com `ddl-auto=validate` e Flyway habilitado. No Docker Compose, o PostgreSQL roda no container `oficina-db`, expõe a porta externa `5434` e atende a aplicação internamente em `db:5432`.
+
+Os perfis `dev` e `test` usam H2 em memória para execução rápida sem Docker e para a suíte automatizada atual. H2 não substitui a decisão de banco principal; é um recurso auxiliar de desenvolvimento e teste.
 
 ### Justificativas
 - Suporte robusto a transações ACID (Atomicidade - Consistência - Isolamento - Durabilidade)
@@ -26,7 +30,7 @@ Adotar **PostgreSQL 16** como banco de dados relacional, executado via Docker (i
 |-------|-------------------|
 | MySQL | Menos recursos avançados, tratamento de NUMERIC menos preciso |
 | MongoDB | Modelo relacional é mais adequado para as entidades do domínio |
-| H2 (embedded) | Apenas para testes; não adequado para produção |
+| H2 (embedded) | Adequado para `dev`/`test` rápidos; não representa o banco principal nem valida integralmente dialeto, constraints e migrations PostgreSQL |
 
 ## Consequências
 
@@ -37,5 +41,6 @@ Adotar **PostgreSQL 16** como banco de dados relacional, executado via Docker (i
 - Healthcheck nativo via `pg_isready`
 
 ### Negativas
-- Necessidade de Docker para desenvolvimento local
+- Necessidade de Docker para reproduzir o ambiente PostgreSQL recomendado
 - Migrations obrigatórias para alterações de schema
+- H2 em `dev`/`test` pode divergir de comportamentos específicos do PostgreSQL

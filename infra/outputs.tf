@@ -1,0 +1,49 @@
+output "aws_region" {
+  description = "AWS region where resources were created."
+  value       = var.aws_region
+}
+
+output "project_name" {
+  description = "Project name used for resource naming."
+  value       = var.project_name
+}
+
+output "vpc_id" {
+  description = "Created VPC ID."
+  value       = aws_vpc.main.id
+}
+
+output "public_subnet_ids" {
+  description = "Public subnet IDs used by EKS nodes and external LoadBalancers."
+  value       = aws_subnet.public[*].id
+}
+
+output "private_subnet_ids" {
+  description = "Private subnet IDs used by RDS."
+  value       = aws_subnet.private[*].id
+}
+
+output "ecr_repository_url" {
+  description = "ECR repository URL for the application image."
+  value       = aws_ecr_repository.app.repository_url
+}
+
+output "eks_cluster_name" {
+  description = "EKS cluster name."
+  value       = aws_eks_cluster.main.name
+}
+
+output "eks_cluster_endpoint" {
+  description = "EKS API endpoint."
+  value       = aws_eks_cluster.main.endpoint
+}
+
+output "rds_endpoint" {
+  description = "RDS PostgreSQL endpoint."
+  value       = aws_db_instance.postgres.address
+}
+
+output "spring_datasource_url" {
+  description = "JDBC URL to use in Kubernetes ConfigMap."
+  value       = "jdbc:postgresql://${aws_db_instance.postgres.address}:5432/${var.db_name}"
+}

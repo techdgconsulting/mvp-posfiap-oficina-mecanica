@@ -16,7 +16,18 @@ Adotar **Flyway** para migrations de banco de dados:
 - **Modo:** `spring.jpa.hibernate.ddl-auto=validate` (apenas valida, não altera schema)
 - **Localização:** `classpath:db/migration`
 - **Convenção:** `V{n}__{descricao}.sql`
-- **Execução:** Automática ao iniciar a aplicação
+- **Execução:** Automática ao iniciar a aplicação nos perfis com PostgreSQL
+
+### Escopo por perfil
+
+| Perfil | Banco | Flyway | Hibernate DDL | Uso |
+|--------|-------|--------|---------------|-----|
+| Padrão | PostgreSQL | Habilitado | `validate` | Execução local com PostgreSQL externo |
+| Docker Compose | PostgreSQL 16 | Habilitado | `validate` | Ambiente recomendado para avaliação e demonstração |
+| `dev` | H2 em memória | Desabilitado | `create-drop` | Execução local rápida sem Docker |
+| `test` | H2 em memória | Desabilitado | `create-drop` | Testes automatizados rápidos e isolados |
+
+Assim, o Flyway é a fonte de verdade para o schema PostgreSQL usado no ambiente principal e no Docker. Os perfis `dev` e `test` usam H2 com schema recriado pelo Hibernate para reduzir atrito e tempo de execução, com a limitação conhecida de não validar as migrations nesses perfis.
 
 ### Migrations existentes
 | Versão | Arquivo | Descrição |
@@ -35,6 +46,8 @@ Adotar **Flyway** para migrations de banco de dados:
 | V12 | `V12__adicionar_atendente_os.sql` | `atendente_nome VARCHAR(150)` em `ordens_servico` — registra o usuário autenticado (JWT) que abriu a OS, completando a rastreabilidade atendente ↔ mecânico |
 | V13 | `V13__inserir_usuarios_perfis.sql` | Insere três usuários de demonstração, um por perfil: `atendente1`, `mecanico1`, `gestor1` — todos com senha `senha123` (BCrypt). Permite testar o RBAC sem criar usuários via `/api/auth/registro` |
 | V14 | `V14__corrigir_status_execucao.sql` | Corrige inconsistência de dados: valor `'DIAGNOSTICO'` renomeado para `'EM_DIAGNOSTICO'` no enum `StatusExecucao` — alinha registros existentes com o enum atualizado |
+| V15 | `V15__corrigir_documentos_clientes_seed.sql` | Corrige documentos CPF/CNPJ da massa seed de clientes para manter dados de demonstração válidos e consistentes com as validações de domínio |
+| V16 | `V16__criar_orcamento_decisao_cliente.sql` | Cria tabela `orcamento_decisao_cliente` para decisão externa de orçamento por token opaco, com hash do token, expiração, status, e-mail de destino e vínculos com OS e orçamento |
 
 ## Consequências
 
@@ -42,8 +55,10 @@ Adotar **Flyway** para migrations de banco de dados:
 - Schema versionado e rastreável (cada migration é um incremento)
 - Reprodutibilidade: qualquer ambiente é construído na mesma sequência
 - Validação de integridade (Hibernate valida que entidades batem com schema)
-- Rollback possível via migrations reversas
+- Redução de schema drift entre ambiente Docker, PostgreSQL local e documentação
+- Evita alterações automáticas destrutivas do Hibernate no banco principal
 
 ### Negativas
 - Scripts SQL manuais (não auto-gerados pelo Hibernate)
 - Necessário cuidado com ordem e dependências entre migrations
+- Perfis `dev` e `test` não executam Flyway; divergências específicas de migration precisam ser capturadas no perfil PostgreSQL/Docker
