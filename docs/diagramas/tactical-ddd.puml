@@ -59,7 +59,7 @@ package "BC Atendimento  <<Core Subdomain>>" #D5E8D4 {
     + formatado() : String
   }
 
-  interface ClienteRepository <<Port>> {
+  interface ClienteRepositoryPort <<Port>> {
     + salvar(cliente : Cliente) : Cliente
     + buscarPorId(id : Long) : Optional<Cliente>
     + buscarPorDocumento(documento : String) : Optional<Cliente>
@@ -68,7 +68,7 @@ package "BC Atendimento  <<Core Subdomain>>" #D5E8D4 {
     + existePorDocumento(documento : String) : boolean
   }
 
-  interface VeiculoRepository <<Port>> {
+  interface VeiculoRepositoryPort <<Port>> {
     + salvar(veiculo : Veiculo) : Veiculo
     + buscarPorId(id : Long) : Optional<Veiculo>
     + buscarPorPlaca(placa : String) : Optional<Veiculo>
@@ -82,10 +82,10 @@ package "BC Atendimento  <<Core Subdomain>>" #D5E8D4 {
   Veiculo --> Cliente  : pertence a (ManyToOne)
 
   note bottom of Cliente
-    Consulta CEP via ViaCepClient <<ACL>>
-    (infrastructure/client/)
-    ← Traduz resposta do ViaCEP <<OHS>>
-    para o modelo de domínio
+    Consulta CEP por BuscarEnderecoPorCepPort
+    implementada por ViaCepEnderecoAdapter <<ACL>>
+    (adapters/out/viacep)
+    usando ViaCepClient em infrastructure/client
   end note
 }
 
@@ -151,11 +151,12 @@ package "BC Ordem de Serviço  <<Core Subdomain>>" #DAE8FC {
     PECA
   }
 
-  interface OrdemDeServicoRepository <<Port>> {
+  interface OrdemDeServicoRepositoryPort <<Port>> {
     + salvar(ordemDeServico : OrdemDeServico) : OrdemDeServico
     + buscarPorId(id : Long) : Optional<OrdemDeServico>
     + buscarPorNumero(numero : String) : Optional<OrdemDeServico>
     + listarTodas() : List<OrdemDeServico>
+    + listarFilaOperacional() : List<OrdemDeServico>
     + listarPorCliente(clienteId : Long) : List<OrdemDeServico>
     + listarPorStatus(status : StatusOS) : List<OrdemDeServico>
     + listarPorVeiculo(veiculoId : Long) : List<OrdemDeServico>
@@ -164,6 +165,74 @@ package "BC Ordem de Serviço  <<Core Subdomain>>" #DAE8FC {
   OrdemDeServico *-- ItemOS      : <<owns>>  1..*
   OrdemDeServico --> StatusOS    : usa
   ItemOS         --> TipoItem    : usa
+}
+
+package "Application - Abertura de OS" #FFFFFF {
+  interface CriarOrdemServicoInputPort <<Port>> {
+    + execute(command : CriarOrdemServicoCommand) : OrdemServicoResult
+  }
+
+  interface CriarOrdemServicoCompletaInputPort <<Port>> {
+    + execute(command : CriarOrdemServicoCompletaCommand) : OrdemServicoResult
+  }
+
+  class CriarOrdemServicoCompletaUseCase <<Use Case>> {
+    + execute(command : CriarOrdemServicoCompletaCommand) : OrdemServicoResult
+  }
+
+  class CriarOrdemServicoCompletaCommand <<Command>> {
+    - documento : String
+    - nome : String
+    - telefone : String
+    - email : String
+    - cep : String
+    - logradouro : String
+    - bairro : String
+    - cidade : String
+    - uf : String
+    - placa : String
+    - marca : String
+    - modelo : String
+    - ano : int
+    - itens : List<ItemOSCommand>
+    - atendenteNome : String
+  }
+
+  CriarOrdemServicoCompletaInputPort <|.. CriarOrdemServicoCompletaUseCase
+  CriarOrdemServicoCompletaUseCase --> CriarOrdemServicoCompletaCommand : consome
+  CriarOrdemServicoCompletaUseCase --> ClienteRepositoryPort : reaproveita/cria cliente
+  CriarOrdemServicoCompletaUseCase --> VeiculoRepositoryPort : reaproveita/cria veiculo
+  CriarOrdemServicoCompletaUseCase --> OrdemDeServicoRepositoryPort : cria OS
+  CriarOrdemServicoCompletaUseCase --> ExecucaoRepositoryPort : cria execucao inicial
+  CriarOrdemServicoCompletaUseCase --> ServicoRepositoryPort : consulta catalogo
+  CriarOrdemServicoCompletaUseCase --> PecaRepositoryPort : consulta estoque
+  CriarOrdemServicoCompletaUseCase --> Cliente : usa agregado existente
+  CriarOrdemServicoCompletaUseCase --> Veiculo : usa agregado existente
+  CriarOrdemServicoCompletaUseCase --> OrdemDeServico : usa agregado existente
+  CriarOrdemServicoCompletaUseCase --> ItemOS : monta itens
+}
+
+package "Application - Consultas de OS" #FFFFFF {
+  interface ListarFilaOrdensServicoInputPort <<Port>> {
+    + listarFilaOperacional() : List<OrdemServicoResult>
+  }
+
+  class OrdemDeServicoUseCase <<Use Case>> {
+    + listarFilaOperacional() : List<OrdemServicoResult>
+  }
+
+  note right of OrdemDeServicoUseCase
+    Fila operacional:
+    EM_EXECUCAO >
+    AGUARDANDO_APROVACAO >
+    EM_DIAGNOSTICO >
+    RECEBIDA.
+    Ordena por dataCriacao ASC
+    dentro do mesmo status.
+  end note
+
+  ListarFilaOrdensServicoInputPort <|.. OrdemDeServicoUseCase
+  OrdemDeServicoUseCase --> OrdemDeServicoRepositoryPort : listarFilaOperacional()
 }
 
 ' ─────────────────────────────────────────────────────────────────────────────
@@ -221,7 +290,7 @@ package "BC Execução  <<Core Subdomain>>" #FFE6CC {
     CONCLUIDO
   }
 
-  interface ExecucaoRepository <<Port>> {
+  interface ExecucaoRepositoryPort <<Port>> {
     + salvar(execucao : Execucao) : Execucao
     + buscarPorId(id : Long) : Optional<Execucao>
     + buscarPorOrdemDeServico(ordemDeServicoId : Long) : Optional<Execucao>
@@ -262,7 +331,7 @@ package "BC Orçamento  <<Core Subdomain>>" #FFF2CC {
      EXPIRADO
   }
 
-  interface OrcamentoRepository <<Port>> {
+  interface OrcamentoRepositoryPort <<Port>> {
     + salvar(orcamento : Orcamento) : Orcamento
     + buscarPorId(id : Long) : Optional<Orcamento>
     + listarPorOrdemDeServico(ordemDeServicoId : Long) : List<Orcamento>
@@ -305,7 +374,7 @@ package "BC Estoque  <<Supporting Subdomain>>" #E1D5E7 {
     + toString() : String
   }
 
-  interface PecaRepository <<Port>> {
+  interface PecaRepositoryPort <<Port>> {
     + salvar(peca : Peca) : Peca
     + buscarPorId(id : Long) : Optional<Peca>
     + listarTodas() : List<Peca>
@@ -332,7 +401,7 @@ package "BC Catálogo de Serviços  <<Supporting Subdomain>>" #F8CECC {
     + atualizar(nome : String, descricao : String, valorUnitario : BigDecimal, tempoEstimadoMinutos : Integer)
   }
 
-  interface ServicoRepository <<Port>> {
+  interface ServicoRepositoryPort <<Port>> {
     + salvar(servico : Servico) : Servico
     + buscarPorId(id : Long) : Optional<Servico>
     + listarTodos() : List<Servico>
@@ -344,7 +413,7 @@ package "BC Catálogo de Serviços  <<Supporting Subdomain>>" #F8CECC {
 ' BC FINANCEIRO — Supporting Subdomain
 ' ─────────────────────────────────────────────────────────────────────────────
 package "BC Financeiro  <<Supporting Subdomain>>" #D0E0FF {
-  interface PagamentoGateway <<Port>> {
+  interface PagamentoGatewayPort <<Port>> {
     + processar(...)
   }
 
@@ -378,7 +447,7 @@ package "BC Financeiro  <<Supporting Subdomain>>" #D0E0FF {
     BOLETO
   }
 
-  interface PagamentoRepository <<Port>> {
+  interface PagamentoRepositoryPort <<Port>> {
     + salvar(pagamento : Pagamento) : Pagamento
     + buscarPorId(id : Long) : Optional<Pagamento>
     + buscarPorOrdemDeServico(ordemDeServicoId : Long) : Optional<Pagamento>
@@ -387,12 +456,12 @@ package "BC Financeiro  <<Supporting Subdomain>>" #D0E0FF {
   Pagamento --> StatusPagamento  : usa
   Pagamento --> MetodoPagamento  : usa
 
-  note bottom of PagamentoGateway
+  note bottom of PagamentoGatewayPort
     Implementado por:
-    MockPagamentoGateway <<ACL>>
-    (infrastructure/gateway/)
+    MockPagamentoGatewayAdapter <<ACL>>
+    (adapters/out/payment)
     ← Traduz resposta do Gateway
-    Pagamento <<OHS>> para domínio
+    de Pagamento <<OHS>> para domínio
   end note
 }
 
@@ -423,7 +492,7 @@ package "BC Entrega  <<Supporting Subdomain>>" #D5E8D4 {
     VEICULO_EM_PATIO
   }
 
-  interface EntregaRepository <<Port>> {
+  interface EntregaRepositoryPort <<Port>> {
     + salvar(entrega : Entrega) : Entrega
     + buscarPorId(id : Long) : Optional<Entrega>
     + buscarPorOrdemDeServico(ordemDeServicoId : Long) : Optional<Entrega>
@@ -453,7 +522,7 @@ package "BC Encerramento  <<Supporting Subdomain>>" #FFE6CC {
     ENCERRADA
   }
 
-  interface EncerramentoRepository <<Port>> {
+  interface EncerramentoRepositoryPort <<Port>> {
     + salvar(encerramento : Encerramento) : Encerramento
     + buscarPorId(id : Long) : Optional<Encerramento>
     + buscarPorOrdemDeServico(ordemDeServicoId : Long) : Optional<Encerramento>
@@ -521,15 +590,15 @@ legend right
   ====
   <b>Ícones PlantUML</b>
   | <back:#FFFFFF><color:#000000> C </color></back> | class    — Aggregate Root, Entity, Value Object |
-  | <back:#FFFFFF><color:#000000> I </color></back> | interface — Port (contrato do domínio)           |
+  | <back:#FFFFFF><color:#000000> I </color></back> | interface — Port (contrato de aplicação)         |
   | <back:#FFFFFF><color:#000000> E </color></back> | enum     — Status, tipos enumerados              |
   ----
   <b>Blocos de Construção DDD</b>
   |<back:#FFFFFF> <<Aggregate Root>> </back>| Ponto de entrada único do agregado      |
   |<back:#FFFFFF> <<Entity>>         </back>| Identidade própria; mutável              |
   |<back:#FFFFFF> <<Value Object>>   </back>| Imutável; igualdade por valor            |
-  |<back:#FFFFFF> <<Port>>           </back>| Interface definida no domínio            |
-  |<back:#FFFFFF> <<ACL>>            </back>| Anti-Corruption Layer (infrastructure)   |
+  |<back:#FFFFFF> <<Port>>           </back>| Porta de aplicação em application/port    |
+  |<back:#FFFFFF> <<ACL>>            </back>| Adapter externo em adapters/out           |
   |<back:#FFFFFF> <<OHS>>            </back>| Open Host Service (sistema externo)      |
   ----
   <b>Tipos de Subdomínio</b>

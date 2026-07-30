@@ -15,10 +15,10 @@ Era necessário decidir como representar essa integração no projeto acadêmico
 
 Adotar o padrão **port/adapter (hexagonal)** para a integração de pagamento, com uma **implementação mock** como adapter padrão:
 
-- **Port (domínio):** `br.com.oficina.domain.financeiro.PagamentoGateway`
-  - Interface neutra a tecnologia
-  - Tipos auxiliares `GatewayRequest(ordemServicoId, valor, metodo)` e `GatewayResponse(aprovado, transactionId, mensagem)` como `record` no mesmo arquivo
-- **Adapter mock (infra):** `br.com.oficina.infrastructure.gateway.MockPagamentoGateway`
+- **Port de saída (estado atual):** `br.com.oficina.application.port.out.PagamentoGatewayPort`
+  - A interface foi mantida fora do adapter e expõe os records `GatewayRequest(ordemServicoId, valor, metodo)` e `GatewayResponse(aprovado, transactionId, mensagem)`
+  - A migração para `application.port.out` reflete a organização atual em ports/adapters: casos de uso dependem de contratos de aplicação, não de detalhes externos
+- **Adapter mock (estado atual):** `br.com.oficina.adapters.out.payment.MockPagamentoGatewayAdapter`
   - Taxa de aprovação configurável (`oficina.pagamento.gateway.approval-rate`, default 0.9)
   - Latência simulada (`oficina.pagamento.gateway.latency-ms`, default 100)
   - `transactionId` no formato `MOCK-<uuid>`
@@ -38,9 +38,9 @@ Adotar o padrão **port/adapter (hexagonal)** para a integração de pagamento, 
 ## Consequências
 
 ### Positivas
-- Domínio permanece **independente de tecnologia de pagamento** (port no domínio, adapter na infra)
-- Substituir o mock por Stripe/Mercado Pago é tarefa local na infra (criar nova classe que implementa `PagamentoGateway` e marcá-la como `@Primary` ou `@ConditionalOnProperty`)
-- Testes do `OrdemDeServicoService` cobrem **ambos os caminhos** (aprovação e recusa) sem chamadas HTTP reais
+- Domínio permanece **independente de tecnologia de pagamento**; o caso de uso depende do port `PagamentoGatewayPort`, e o adapter fica em `adapters.out.payment`
+- Substituir o mock por Stripe/Mercado Pago é tarefa local no adapter de saída (criar nova classe que implementa `PagamentoGatewayPort` e marcá-la como `@Primary` ou `@ConditionalOnProperty`)
+- Testes dos casos de uso de ordem de serviço cobrem **ambos os caminhos** (aprovação e recusa) sem chamadas HTTP reais
 - Auditabilidade: `transaction_id` e `gateway_mensagem` ficam persistidos junto ao `Pagamento`
 
 ### Negativas

@@ -25,13 +25,13 @@ O projeto exige uma plataforma backend consolidada, com suporte a DDD tático, p
 | Kotlin | Curva de aprendizado adicional; Java é a linguagem base do curso FIAP |
 | Java 11 | LTS anterior; sem records, sealed classes e melhorias de switch |
 
-**Consequências:** Records do Java 14+ usados para DTOs imutáveis (`CriarOrdemServicoRequest`, `ClienteRequest`, etc.). `var` reduz verbosidade. Suporte garantido até 2029.
+**Consequências:** Records do Java 14+ usados em requests, commands e results imutáveis. `var` reduz verbosidade. Suporte garantido até 2029.
 
 ---
 
-### 2. Framework: Spring Boot 3.3.5
+### 2. Framework: Spring Boot 3.5.16
 
-**Decisão:** Spring Boot 3.3.5 como framework principal.
+**Decisão:** Spring Boot 3.5.16 como framework principal.
 
 **Justificativas:**
 - Autoconfiguração elimina XML e reduz boilerplate de infraestrutura
@@ -74,7 +74,7 @@ O projeto exige uma plataforma backend consolidada, com suporte a DDD tático, p
 | `@Builder` | Padrão Builder para construção de objetos |
 | `@NoArgsConstructor(access = PROTECTED)` | Construtor protegido exigido pelo JPA |
 | `@AllArgsConstructor` | Construtor com todos os campos (Builder) |
-| `@RequiredArgsConstructor` | Injeção de dependências via construtor nos Services |
+| `@RequiredArgsConstructor` | Injeção de dependências via construtor em controllers, use cases e adapters |
 | `@Slf4j` | Logger SLF4J injetado automaticamente |
 | `@EqualsAndHashCode` | Value Objects (CpfCnpj, Placa, Quantidade) |
 
@@ -82,9 +82,9 @@ O projeto exige uma plataforma backend consolidada, com suporte a DDD tático, p
 
 ---
 
-### 5. Documentação de API: SpringDoc OpenAPI 2.6.0
+### 5. Documentação de API: SpringDoc OpenAPI 2.8.17
 
-**Decisão:** `springdoc-openapi-starter-webmvc-ui` versão 2.6.0 para geração automática do contrato OpenAPI 3.0 e interface Swagger UI.
+**Decisão:** `springdoc-openapi-starter-webmvc-ui` versão 2.8.17 para geração automática do contrato OpenAPI 3.0 e interface Swagger UI.
 
 **Acesso em desenvolvimento:** `http://localhost:8080/swagger-ui.html`
 
@@ -119,7 +119,7 @@ O projeto exige uma plataforma backend consolidada, com suporte a DDD tático, p
 
 **Configuração:**
 - Relatório gerado em `target/site/jacoco/` a cada `mvn test`
-- Exclusões configuradas: `*JpaRepository*` (adaptadores JPA gerados) e `OficinaMecanicaDGCARApplication` (ponto de entrada)
+- Exclusão configurada: `OficinaMecanicaDGCARApplication` (ponto de entrada)
 
 **Justificativas:**
 - Integrado ao ciclo `test` do Maven sem configuração adicional
@@ -128,14 +128,16 @@ O projeto exige uma plataforma backend consolidada, com suporte a DDD tático, p
 
 ---
 
-### 8. Testes de Integração: Testcontainers
+### 8. Testes de Integração com PostgreSQL: Testcontainers
 
-**Decisão:** `org.testcontainers:junit-jupiter` + `org.testcontainers:postgresql` para testes de integração com PostgreSQL real em container Docker.
+**Decisão:** manter `org.testcontainers:junit-jupiter` + `org.testcontainers:postgresql` declarados como dependências de teste para evolução futura da suíte com PostgreSQL real em container Docker.
 
 **Justificativas:**
-- Elimina dependência de banco de dados externo nos testes
-- PostgreSQL real no teste garante fidelidade com o ambiente de produção (vs. H2 com dialeto diferente)
+- Elimina dependência de banco de dados externo quando testes de integração com PostgreSQL forem adicionados
+- PostgreSQL real no teste aumenta fidelidade com o ambiente principal em comparação ao H2
 - Integração nativa com JUnit 5 via `@Testcontainers` + `@Container`
+
+**Estado atual:** a suíte automatizada atual não usa Testcontainers; os testes rodam com H2 em memória no perfil `test`. O uso de Testcontainers permanece como extensão planejada para cenários de CI/CD que precisem validar migrations, constraints e dialeto PostgreSQL.
 
 | Alternativa | Motivo da rejeição |
 |-------------|-------------------|
@@ -157,9 +159,32 @@ O projeto exige uma plataforma backend consolidada, com suporte a DDD tático, p
 
 ### 10. Banco In-Memory para Dev Local: H2
 
-**Decisão:** H2 Database em `scope runtime` como banco alternativo para execução local sem Docker.
+**Decisão:** H2 Database em `scope runtime` como banco alternativo para execução local sem Docker e para a suíte automatizada atual.
 
-**Escopo:** Apenas desenvolvimento local (perfil padrão sem Docker). Testes de integração usam Testcontainers com PostgreSQL real.
+**Escopo:** perfis `dev` e `test`, ambos com schema recriado pelo Hibernate (`ddl-auto=create-drop`) e Flyway desabilitado, conforme `application.yml`.
+
+---
+
+### 11. Notificações por E-mail: Spring Mail / SMTP
+
+**Decisão:** `spring-boot-starter-mail` como infraestrutura de envio de e-mail, isolada pela porta `EmailNotificacaoPort`.
+
+**Justificativas:**
+- Permite envio real por SMTP sem acoplar a camada de aplicação ao Spring Mail.
+- Mantém a Clean Architecture: use cases dependem de `EmailNotificacaoPort`, e a infraestrutura escolhe o adapter ativo.
+- Suporta execução local em modo `LOG`, envio real em modo `SMTP` e desativação controlada por configuração.
+- Atende ao requisito de comunicação informativa ao cliente sobre mudanças de status da OS e ao fluxo de decisão externa de orçamento.
+
+**Configuração atual:**
+- `OFICINA_EMAIL_MODE=LOG`: registra destinatário, assunto e corpo em log, sem envio real.
+- `OFICINA_EMAIL_MODE=SMTP`: envia e-mail real via `JavaMailSender`.
+- `OFICINA_EMAIL_ENABLED=false`: ignora notificações de forma explícita, sem quebrar transições da OS.
+
+| Alternativa | Motivo da rejeição |
+|-------------|-------------------|
+| Envio direto no use case com `JavaMailSender` | Acoplaria a aplicação ao framework de infraestrutura |
+| AWS SES direto nesta etapa | Exige configuração de domínio/e-mail verificado e credenciais AWS; fica como evolução natural para implantação em nuvem |
+| Apenas log/mock | Suficiente para testes locais, mas não atende ao requisito de envio real por SMTP |
 
 ---
 
@@ -168,7 +193,7 @@ O projeto exige uma plataforma backend consolidada, com suporte a DDD tático, p
 | Camada | Tecnologia | Versão |
 |--------|-----------|--------|
 | Linguagem | Java | 17 (LTS) |
-| Framework | Spring Boot | 3.3.5 |
+| Framework | Spring Boot | 3.5.16 |
 | Build | Maven | (spring-boot-starter-parent) |
 | Web | Spring Web MVC | (managed) |
 | Persistência | Spring Data JPA / Hibernate | (managed) |
@@ -178,8 +203,9 @@ O projeto exige uma plataforma backend consolidada, com suporte a DDD tático, p
 | Banco Dev | H2 | (managed) |
 | Migrations | Flyway | (managed + ADR-005) |
 | Boilerplate | Lombok | (managed) |
-| Documentação API | SpringDoc OpenAPI | 2.6.0 |
+| Documentação API | SpringDoc OpenAPI | 2.8.17 |
 | Cobertura | JaCoCo | 0.8.12 |
 | Relatórios de Teste | Allure | 2.27.0 |
-| Testes Integração | Testcontainers | (managed) |
+| Testes Integração | Testcontainers | Declarado para evolução futura |
+| E-mail | Spring Mail / SMTP | (managed) |
 | Containerização | Docker / Docker Compose | (ADR-006) |

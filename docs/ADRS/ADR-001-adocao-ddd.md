@@ -11,12 +11,14 @@ O sistema da oficina mecânica envolve diferentes áreas de negócio, como atend
 
 ## Decisão
 
-Adotar **Domain-Driven Design** como abordagem de modelagem e organização do código, com:
+Adotar **Domain-Driven Design** como abordagem de modelagem e organização do código, preservando o domínio independente de frameworks e integrando-o à arquitetura ports/adapters do projeto:
 
 - **Bounded Contexts** separados por subdomínio (Atendimento, Ordem de Serviço, Diagnóstico, Orçamento , Execução, Financeiro, Entrega, Encerramento)
-- **Aggregate Roots** como ponto de consistência (Cliente, Veículo, OrdemDeServico, ItemOS, Diagnostico, Peca, Servico, Orcamento, Execucao, Pagamento, Entrega, Encerramento)
-- **Value Objects** para conceitos imutáveis com validação (CpfCnpj, Placa, Quantidade, PeriodoExecucao)
-- **Repository Interfaces** no domínio (ports) com implementações na infraestrutura (adapters)
+- **Modelos de domínio** em `domain/model` como ponto de consistência das regras de negócio (Cliente, Veiculo, OrdemDeServico, ItemOS, Diagnostico, Peca, Servico, Orcamento, Execucao, Pagamento, Entrega, Encerramento, Usuario)
+- **Value Objects** em `domain/valueobject` para conceitos imutáveis com validação (CpfCnpj, Placa, Quantidade, PeriodoExecucao, PerfilUsuario, status e enums do fluxo)
+- **Casos de uso** em `application/usecase`, responsáveis por orquestrar comandos, consultas, transições de estado e chamadas aos ports
+- **Ports de entrada e saída** em `application/port/in` e `application/port/out`, mantendo o domínio livre de dependências de persistência, segurança, HTTP ou gateways externos
+- **Adapters** em `adapters/in` e `adapters/out`, implementando entrada REST, persistência, segurança, ViaCEP e gateway de pagamento mock
 - **Linguagem Ubíqua** documentada e refletida no código
 
 ## Consequências
@@ -26,8 +28,11 @@ Adotar **Domain-Driven Design** como abordagem de modelagem e organização do c
 - Boundaries claros entre contextos facilitam manutenção
 - Value Objects encapsulam validações e previnem estados inválidos
 - Testabilidade do domínio sem dependência de infraestrutura
+- Ports na camada de aplicação permitem trocar persistência, gateway de pagamento, token JWT e integrações externas sem alterar regras de domínio
+- Adapters isolam detalhes técnicos e mantêm controllers, JPA e clientes HTTP fora do núcleo de negócio
 
 ### Negativas
 - Overhead de abstrações para operações simples (ex: Serviço é basicamente CRUD)
 - Mais classes e interfaces comparado a uma abordagem anêmica
 - Curva de aprendizado para desenvolvedores não familiarizados com DDD
+- Necessidade de mapeamentos entre requests/responses, commands/results, modelos de domínio e entidades JPA

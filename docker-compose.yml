@@ -6,11 +6,23 @@ services:
       - "8080:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/oficina
-      SPRING_DATASOURCE_USERNAME: oficina
-      SPRING_DATASOURCE_PASSWORD: oficina123
-      JWT_SECRET: ${JWT_SECRET:-chave-prod}
-      PAGAMENTO_GATEWAY_APPROVAL_RATE: "1.0"
-      PAGAMENTO_GATEWAY_LATENCY_MS: "0"
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-oficina}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-oficina123}
+      JWT_SECRET: ${JWT_SECRET:-troque-esta-chave-local-com-32-caracteres}
+      PAGAMENTO_GATEWAY_APPROVAL_RATE: ${PAGAMENTO_GATEWAY_APPROVAL_RATE:-1.0}
+      PAGAMENTO_GATEWAY_LATENCY_MS: ${PAGAMENTO_GATEWAY_LATENCY_MS:-0}
+
+      OFICINA_EMAIL_ENABLED: ${OFICINA_EMAIL_ENABLED:-false}
+      OFICINA_EMAIL_MODE: ${OFICINA_EMAIL_MODE:-LOG}
+      OFICINA_EMAIL_REMETENTE: ${OFICINA_EMAIL_REMETENTE:-no-reply@dgcar.local}
+      SMTP_HOST: ${SMTP_HOST:-localhost}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-true}
+      SMTP_STARTTLS_ENABLE: ${SMTP_STARTTLS_ENABLE:-true}
+      MANAGEMENT_HEALTH_MAIL_ENABLED: ${MANAGEMENT_HEALTH_MAIL_ENABLED:-false}
+
     depends_on:
       db:
         condition: service_healthy
@@ -21,15 +33,15 @@ services:
     image: postgres:16-alpine
     container_name: oficina-db
     environment:
-      POSTGRES_DB: oficina
-      POSTGRES_USER: oficina
-      POSTGRES_PASSWORD: oficina123
+      POSTGRES_DB: ${POSTGRES_DB:-oficina}
+      POSTGRES_USER: ${POSTGRES_USER:-oficina}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oficina123}
     ports:
       - "5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U oficina"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-oficina} -d $${POSTGRES_DB:-oficina}"]
       interval: 5s
       timeout: 5s
       retries: 5

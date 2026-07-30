@@ -22,10 +22,13 @@
 | **Peça** | Aggregate Root | Material físico com controle de estoque (quantidade disponível e estoque mínimo configurável por peça). Permite baixa, reposição e alerta de estoque baixo. | Estoque |
 | **Serviço** | Aggregate Root | Tipo de trabalho oferecido pela oficina com valor tabelado e tempo estimado em minutos. | Catálogo de Serviços |
 | **Orçamento** | Aggregate Root | Proposta de valor gerada automaticamente a partir dos itens da OS. Enviada ao cliente para aprovação. Possui validade. | Orçamento |
+| **Decisão Externa de Orçamento** | Aggregate / Controle de Processo | Solicitação enviada ao cliente por e-mail para aprovar ou recusar orçamento usando token opaco, expiração e uso único. | Orçamento |
+| **Token de Decisão** | Value / Credencial temporária | Identificador opaco gerado para decisão externa. Apenas o hash é persistido; o token em texto claro aparece somente no link enviado ao cliente. | Segurança / Orçamento |
+| **Notificação de Status da OS** | Controle de Processo | Comunicação informativa enviada ao e-mail cadastrado do cliente após mudanças relevantes no status da Ordem de Serviço. | Ordem de Serviço |
 | **Execução** | Aggregate Root | Fase em que os serviços aprovados são realizados no veículo. Contém diagnóstico e período de execução. | Execução |
 | **Diagnóstico** | Entity | Avaliação técnica feita pelo mecânico. Pode identificar problemas adicionais que geram novo orçamento. | Execução |
 | **Pagamento** | Aggregate Root | Registro financeiro vinculado à OS. Pode ser aprovado ou recusado pelo Gateway de Pagamento. Suporta 5 métodos. Armazena `transactionId` e `gatewayMensagem` retornados pelo provedor. | Financeiro |
-| **Gateway de Pagamento** | Port (DDD) | Interface no domínio (`PagamentoGateway`) que abstrai o provedor externo de autorização de cobranças. Implementação padrão é `MockPagamentoGateway` (taxa de aprovação e latência configuráveis). Substituível por Stripe, Mercado Pago, etc. | Financeiro |
+| **Gateway de Pagamento** | Porta de Aplicação / Output Port | Integração externa abstraída por `PagamentoGatewayPort` em `application.port.out`. A implementação atual é `MockPagamentoGatewayAdapter` em `adapters.out.payment`, simulando aprovação ou recusa de cobranças. Substituível por Stripe, Mercado Pago ou outro provedor real. | Financeiro |
 | **Entrega** | Aggregate Root | Liberação e devolução do veículo ao cliente após pagamento aprovado. | Entrega |
 | **Encerramento** | Aggregate Root | Fechamento definitivo da OS após a entrega do veículo. | Encerramento |
 
@@ -140,10 +143,16 @@
 | Excluir Cliente | Atendente | Remover cliente sem veículos vinculados | `DELETE /api/clientes/{id}` |
 | Cadastrar Veículo | Atendente | Registrar veículo com placa Mercosul | `POST /api/veiculos` |
 | Criar OS | Atendente | Abrir OS com itens (peças + serviços) | `POST /api/ordens-servico` |
+| Criar OS Completa | Atendente | Abrir OS com dados de cliente e veículo no mesmo payload, reaproveitando cadastros existentes quando aplicável | `POST /api/ordens-servico/completa` |
+| Listar Fila Operacional de OS | Atendente / Mecânico / Gestor | Consultar OS ativas da oficina em ordem de prioridade operacional | `GET /api/ordens-servico/fila` |
 | Iniciar Diagnóstico | Mecânico | Mecânico inicia avaliação técnica do veículo → OS: EM_DIAGNOSTICO. O nome do mecânico autenticado é registrado em `execucoes.mecanico_nome` e exposto em `OrdemServicoResponse.mecanicoNome` e no tracking público. | `PATCH /api/ordens-servico/{id}/iniciar-diagnostico` |
 | Gerar Orçamento | Atendente | Calcular valor total a partir dos itens da OS | `POST /api/ordens-servico/{id}/orcamento` |
 | Aprovar Orçamento | Atendente | Registrar aprovação do cliente → baixa estoque + OS: EM_EXECUCAO | `PATCH /api/ordens-servico/{id}/aprovar` (autenticado) |
 | Rejeitar Orçamento | Atendente | Registrar rejeição do cliente → OS: CANCELADA | `PATCH /api/ordens-servico/{id}/rejeitar` (autenticado) |
+| Notificar Cliente sobre Orçamento | Atendente / Gestor | Gera solicitação de decisão externa com token opaco e envia e-mail pelo adapter configurado (`LOG` ou `SMTP`) | `POST /api/ordens-servico/{id}/orcamento/notificar-cliente` |
+| Aprovar Orçamento por Token | Cliente | Aprova orçamento por endpoint público seguro, sem JWT, validando token, expiração e uso único | `POST /api/orcamentos/decisoes-cliente/{token}/aprovar` |
+| Recusar Orçamento por Token | Cliente | Recusa orçamento por endpoint público seguro, sem JWT, validando token, expiração e uso único | `POST /api/orcamentos/decisoes-cliente/{token}/recusar` |
+| Notificar Status da OS | Sistema | Envia e-mail informativo ao cliente após mudança relevante de status da OS, sem alterar a transição de negócio | Automático, sem endpoint próprio |
 | Gerar Novo Orçamento | Atendente | Novo problema identificado durante execução → novo orçamento; OS retorna para AGUARDANDO_APROVACAO. O mecânico comunica o problema ao atendente, que chama o endpoint. | `POST /api/ordens-servico/{id}/orcamento` (a partir de EM_EXECUCAO) |
 | Finalizar Serviço | Mecânico | Marcar execução como concluída → OS: FINALIZADA | `PATCH /api/ordens-servico/{id}/finalizar` |
 | Adicionar Itens à OS | Mecânico / Gestor | Adicionar peças e serviços a uma OS nos status RECEBIDA, EM_DIAGNOSTICO ou EM_EXECUCAO | `POST /api/ordens-servico/{id}/itens` |
@@ -168,6 +177,9 @@
 | `DiagnosticoIniciado` | Mecânico inicia avaliação | OS avança para EM_DIAGNOSTICO; Execucao avança para EM_DIAGNOSTICO |
 | `OrcamentoGerado` | Geração do orçamento | Valor calculado, OS aguarda aprovação |
 | `OrcamentoEnviado` | Orçamento disponibilizado ao cliente | Cliente pode aprovar ou rejeitar |
+| `NotificacaoOrcamentoEnviada` | Atendente/Gestor dispara notificação | Token de decisão é criado, hash persistido e links de aprovação/recusa são enviados pelo adapter configurado (`LOG` ou `SMTP`) |
+| `DecisaoClienteRecebida` | Cliente aciona endpoint por token | Sistema valida token, expiração e uso único antes de aplicar aprovação ou recusa |
+| `NotificacaoStatusOSEnviada` | OS muda de status após transição válida | Cliente recebe e-mail informativo com número da OS, status atual e link público de acompanhamento |
 | `OrcamentoAprovado` | Cliente aprova | Baixa no estoque; Execucao avança para EM_ANDAMENTO |
 | `OrcamentoRejeitado` | Cliente rejeita | OS cancelada |
 | `OrdemDeServicoCancelada` | Rejeição do orçamento | OS entra em status terminal CANCELADA |
@@ -195,7 +207,11 @@
 | RN04 | Baixa de estoque só permitida com disponibilidade | `Peca.verificarDisponibilidade()` → `IllegalStateException` |
 | RN05 | Orçamento só pode ser aprovado se não estiver expirado | `Orcamento.estaExpirado()` |
 | RN06 | Status da OS segue máquina de estados (transições definidas) | Métodos `avancarParaDiagnostico()`, `aguardarAprovacao()`, `aprovarEIniciarExecucao()`, `finalizar()`, `aguardarRetirada()`, `entregar()`, `cancelar()` chamam `validarTransicao()` internamente → `IllegalStateException` se transição inválida |
-| RN07 | Pagamento recusado pelo gateway permite nova tentativa (OS permanece em FINALIZADA) | `OrdemDeServicoService.registrarPagamento` + `MockPagamentoGateway` |
-| RN08 | Valor unitário do item é resolvido automaticamente do catálogo | `OrdemDeServicoService` resolve via referenciaId |
-| RN09 | Cliente não pode ser excluído se possuir veículos ou ordens de serviço vinculadas | `ClienteService.excluir()` → `NegocioException` (HTTP 422) |
+| RN07 | Pagamento recusado pelo gateway permite nova tentativa (OS permanece em FINALIZADA) | `OrdemDeServicoUseCase` processa o pagamento via `PagamentoGatewayPort`; `MockPagamentoGatewayAdapter` simula a resposta externa e `PagamentoRepositoryPort` persiste o resultado |
+| RN08 | Valor unitário do item é resolvido automaticamente do catálogo | `OrdemDeServicoUseCase` consulta `PecaRepositoryPort` ou `ServicoRepositoryPort` pelo `referenciaId` e cria `ItemOS` com o valor vigente do catálogo |
+| RN09 | Cliente não pode ser excluído se possuir veículos ou ordens de serviço vinculadas | Caso de uso de exclusão consulta portas de saída como `VeiculoRepositoryPort` e `OrdemDeServicoRepositoryPort`; em caso de vínculo, lança `NegocioException` (HTTP 422) |
 | RN10 | Cada peça possui estoque mínimo configurável; estoque é considerado baixo quando `quantidadeEstoque <= estoqueMinimo` | `Peca.estaComEstoqueBaixo()` |
+| RN11 | CEP é enriquecimento cadastral opcional, não pré-condição de criação | `CriarClienteUseCase` e `CriarOrdemServicoCompletaUseCase` consultam `BuscarEnderecoPorCepPort` ao criar cliente novo com CEP informado; ausência de retorno do ViaCEP não bloqueia a criação, e cliente existente não tem endereço sobrescrito pela abertura completa |
+| RN12 | Fila operacional de OS considera apenas trabalho ativo da oficina | `ListarFilaOrdensServicoInputPort` retorna somente `EM_EXECUCAO`, `AGUARDANDO_APROVACAO`, `EM_DIAGNOSTICO` e `RECEBIDA`, ordenando por essa prioridade e por `dataCriacao` ascendente dentro do mesmo status |
+| RN13 | Decisão externa de orçamento exige token opaco válido, pendente e não expirado | `OrcamentoDecisaoClienteUseCase` gera token, persiste apenas hash, valida expiração e uso único, e delega a decisão para os fluxos internos de aprovação/rejeição da OS |
+| RN14 | Notificação de status é informativa e não bloqueante | `NotificarStatusOrdemServicoUseCase` envia o e-mail por `EmailNotificacaoPort`; falhas de envio são registradas em log e não desfazem a transição da OS |

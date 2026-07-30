@@ -1,5 +1,6 @@
 package br.com.oficina.infrastructure.security;
 
+import br.com.oficina.application.port.out.TokenProviderPort;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +29,7 @@ import io.qameta.allure.Story;
 @Feature("Filtro JWT")
 class JwtAuthenticationFilterTest {
 
-    @Mock private JwtService jwtService;
+    @Mock private TokenProviderPort tokenProviderPort;
     @Mock private FilterChain filterChain;
 
     @InjectMocks
@@ -66,9 +67,9 @@ class JwtAuthenticationFilterTest {
     void deveAutenticarComTokenValido() throws ServletException, IOException {
         request.addHeader("Authorization", "Bearer token-valido");
 
-        when(jwtService.extrairUsername("token-valido")).thenReturn("admin");
-        when(jwtService.isTokenValido("token-valido")).thenReturn(true);
-        when(jwtService.extrairRole("token-valido")).thenReturn("GESTOR");
+        when(tokenProviderPort.extrairUsername("token-valido")).thenReturn("admin");
+        when(tokenProviderPort.isTokenValido("token-valido")).thenReturn(true);
+        when(tokenProviderPort.extrairRole("token-valido")).thenReturn("GESTOR");
 
         filter.doFilterInternal(request, response, filterChain);
 
@@ -87,9 +88,9 @@ class JwtAuthenticationFilterTest {
             var req = new MockHttpServletRequest();
             req.addHeader("Authorization", "Bearer token-" + role);
 
-            when(jwtService.extrairUsername("token-" + role)).thenReturn("user");
-            when(jwtService.isTokenValido("token-" + role)).thenReturn(true);
-            when(jwtService.extrairRole("token-" + role)).thenReturn(role);
+            when(tokenProviderPort.extrairUsername("token-" + role)).thenReturn("user");
+            when(tokenProviderPort.isTokenValido("token-" + role)).thenReturn(true);
+            when(tokenProviderPort.extrairRole("token-" + role)).thenReturn(role);
 
             filter.doFilterInternal(req, response, filterChain);
 
@@ -107,8 +108,8 @@ class JwtAuthenticationFilterTest {
     void naoDeveAutenticarComTokenInvalido() throws ServletException, IOException {
         request.addHeader("Authorization", "Bearer token-invalido");
 
-        when(jwtService.extrairUsername("token-invalido")).thenReturn("admin");
-        when(jwtService.isTokenValido("token-invalido")).thenReturn(false);
+        when(tokenProviderPort.extrairUsername("token-invalido")).thenReturn("admin");
+        when(tokenProviderPort.isTokenValido("token-invalido")).thenReturn(false);
 
         filter.doFilterInternal(request, response, filterChain);
 
@@ -121,7 +122,7 @@ class JwtAuthenticationFilterTest {
     void deveProsseguirComUsernameNulo() throws ServletException, IOException {
         request.addHeader("Authorization", "Bearer token-ruim");
 
-        when(jwtService.extrairUsername("token-ruim")).thenReturn(null);
+        when(tokenProviderPort.extrairUsername("token-ruim")).thenReturn(null);
 
         filter.doFilterInternal(request, response, filterChain);
 

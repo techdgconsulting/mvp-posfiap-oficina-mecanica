@@ -21,8 +21,25 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:true}
+          starttls:
+            enable: ${SMTP_STARTTLS_ENABLE:true}
+
 server:
   port: 8080
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
 
 springdoc:
   api-docs:
@@ -35,12 +52,34 @@ jwt:
   expiration: 86400000
 
 oficina:
+  notificacao:
+    base-url: ${OFICINA_PUBLIC_BASE_URL:http://localhost:8080}
+    orcamento:
+      expiracao-horas: ${ORCAMENTO_DECISAO_EXPIRACAO_HORAS:48}
+  email:
+    enabled: ${OFICINA_EMAIL_ENABLED:true}
+    mode: ${OFICINA_EMAIL_MODE:LOG}
+    remetente: ${OFICINA_EMAIL_REMETENTE:no-reply@oficina.local}
   pagamento:
     gateway:
       # Taxa de aprovação simulada (0.0 = sempre recusa, 1.0 = sempre aprova)
       approval-rate: ${PAGAMENTO_GATEWAY_APPROVAL_RATE:0.9}
       # Latência simulada em ms
       latency-ms: ${PAGAMENTO_GATEWAY_LATENCY_MS:100}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  health:
+    mail:
+      enabled: ${MANAGEMENT_HEALTH_MAIL_ENABLED:false}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
 
 ---
 spring:
@@ -58,6 +97,9 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
 
   flyway:
     enabled: false
@@ -82,6 +124,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
 
   flyway:
     enabled: false

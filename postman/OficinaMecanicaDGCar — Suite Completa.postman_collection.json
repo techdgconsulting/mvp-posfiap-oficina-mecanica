@@ -1590,7 +1590,7 @@
                   "listen": "test",
                   "script": {
                     "exec": [
-                      "pm.test('[01.4] ServiÃ§o base criado (201)', function() {",
+                      "pm.test('[01.4] Serviço base criado (201)', function() {",
                       "    pm.response.to.have.status(201);",
                       "});",
                       "pm.collectionVariables.set('rbac_servicoId', pm.response.json().id);"
@@ -1619,7 +1619,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"nome\": \"Alinhamento RBAC [Setup]\",\n  \"descricao\": \"ServiÃ§o de suporte para testes RBAC\",\n  \"valorUnitario\": 150.00,\n  \"tempoEstimadoMinutos\": 60\n}"
+                  "raw": "{\n  \"nome\": \"Alinhamento RBAC [Setup]\",\n  \"descricao\": \"Serviço de suporte para testes RBAC\",\n  \"valorUnitario\": 150.00,\n  \"tempoEstimadoMinutos\": 60\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/servicos",
@@ -1641,7 +1641,7 @@
                   "listen": "test",
                   "script": {
                     "exec": [
-                      "pm.test('[01.5] PeÃ§a base criada (201)', function() {",
+                      "pm.test('[01.5] Peça base criada (201)', function() {",
                       "    pm.response.to.have.status(201);",
                       "});",
                       "pm.collectionVariables.set('rbac_pecaId', pm.response.json().id);"
@@ -1670,7 +1670,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"nome\": \"Vela RBAC [Setup]\",\n  \"descricao\": \"PeÃ§a de suporte para testes RBAC\",\n  \"quantidadeEstoque\": 100,\n  \"valorUnitario\": 50.00,\n  \"estoqueMinimo\": 5\n}"
+                  "raw": "{\n  \"nome\": \"Vela RBAC [Setup]\",\n  \"descricao\": \"Peça de suporte para testes RBAC\",\n  \"quantidadeEstoque\": 100,\n  \"valorUnitario\": 50.00,\n  \"estoqueMinimo\": 5\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/pecas",
@@ -1714,7 +1714,7 @@
                       "if (pm.response.code === 201) {",
                       "    pm.collectionVariables.set('rbac_clienteId', pm.response.json().id);",
                       "}",
-                      "pm.test('[01.6] Cliente base disponÃ­vel', function() {",
+                      "pm.test('[01.6] Cliente base disponível', function() {",
                       "    pm.expect(pm.collectionVariables.get('rbac_clienteId')).to.not.be.undefined;",
                       "});"
                     ],
@@ -2110,7 +2110,7 @@
                       "pm.test('[01.13] Status = EM_DIAGNOSTICO confirmado', function() {",
                       "    pm.expect(pm.response.json().status).to.eql('EM_DIAGNOSTICO');",
                       "});",
-                      "console.log('[SETUP] âœ… Dados de apoio prontos. Iniciando testes de permissÃ£o.');"
+                      "console.log('[SETUP] ✅ Dados de apoio prontos. Iniciando testes de permissão.');"
                     ],
                     "type": "text/javascript"
                   }
@@ -2310,7 +2310,7 @@
                     "login"
                   ]
                 },
-                "description": "O endpoint /api/auth/login Ã© pÃºblico. Aqui testamos que ele NÃƒO retorna 403."
+                "description": "O endpoint /api/auth/login é público. Aqui testamos que ele NÃO retorna 403."
               },
               "response": []
             }
@@ -3377,7 +3377,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"nome\": \"Tentativa Atendente\",\n  \"descricao\": \"NÃ£o deve ser criado\",\n  \"valorUnitario\": 100.00,\n  \"tempoEstimadoMinutos\": 30\n}"
+                  "raw": "{\n  \"nome\": \"Tentativa Atendente\",\n  \"descricao\": \"Não deve ser criado\",\n  \"valorUnitario\": 100.00,\n  \"tempoEstimadoMinutos\": 30\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/servicos",
@@ -3870,7 +3870,7 @@
                       "pm.test('[06.4] MECÂNICO pode finalizar serviço (200)', function() {",
                       "    pm.response.to.have.status(200);",
                       "});",
-                      "pm.test('[06.4] Status avanÃ§ou para FINALIZADA', function() {",
+                      "pm.test('[06.4] Status avançou para FINALIZADA', function() {",
                       "    pm.expect(pm.response.json().status).to.eql('FINALIZADA');",
                       "});"
                     ],
@@ -4465,7 +4465,7 @@
                   "listen": "test",
                   "script": {
                     "exec": [
-                      "pm.test('[08.3] PeÃ§as sem token retorna 401', function() {",
+                      "pm.test('[08.3] Peças sem token retorna 401', function() {",
                       "    pm.response.to.have.status(401);",
                       "});"
                     ],
@@ -4797,10 +4797,10 @@
                   "listen": "test",
                   "script": {
                     "exec": [
-                      "pm.test('[09.4] Registro sem campo role retorna erro de validaÃ§Ã£o (400)', function() {",
+                      "pm.test('[09.4] Registro sem campo role retorna erro de validação (400)', function() {",
                       "    pm.expect([400, 422]).to.include(pm.response.code);",
                       "});",
-                      "console.log('[09.4] CÃ³digo retornado:', pm.response.code, '| Body:', pm.response.text());"
+                      "console.log('[09.4] Código retornado:', pm.response.code, '| Body:', pm.response.text());"
                     ],
                     "type": "text/javascript"
                   }
@@ -10026,6 +10026,51 @@
               "response": []
             },
             {
+              "name": "06.4a - Listar Fila Operacional de OS",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test('Resposta é array', () => pm.expect(body).to.be.an('array'));",
+                      "const excluidos = ['FINALIZADA', 'AGUARDANDO_RETIRADA', 'ENTREGUE', 'CANCELADA'];",
+                      "pm.test('Fila não contém status encerrados', () => body.forEach(os => pm.expect(excluidos).to.not.include(os.status)));",
+                      "const prioridade = { EM_EXECUCAO: 1, AGUARDANDO_APROVACAO: 2, EM_DIAGNOSTICO: 3, RECEBIDA: 4 };",
+                      "pm.test('Ordenação por prioridade operacional', () => { for (let i = 1; i < body.length; i++) { pm.expect(prioridade[body[i - 1].status]).to.be.at.most(prioridade[body[i].status]); } });"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/ordens-servico/fila",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "ordens-servico",
+                    "fila"
+                  ]
+                }
+              }
+            },
+            {
               "name": "06.5 - Listar OS por Cliente",
               "request": {
                 "auth": {
@@ -10292,14 +10337,17 @@
               "response": []
             },
             {
-              "name": "06.7 - Aprovar Orçamento (cliente aceita)",
+              "name": "06.6a - Notificar Cliente sobre Orçamento",
               "event": [
                 {
                   "listen": "test",
                   "script": {
                     "exec": [
                       "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                      "pm.test('OS EM_EXECUCAO', () => pm.expect(pm.response.json().status).to.eql('EM_EXECUCAO'));"
+                      "const body = pm.response.json();",
+                      "pm.test('Links de decisão gerados', () => { pm.expect(body.linkAprovacao).to.include('/api/orcamentos/decisoes-cliente/'); pm.expect(body.linkRecusa).to.include('/api/orcamentos/decisoes-cliente/'); });",
+                      "const token = body.linkAprovacao.split('/decisoes-cliente/')[1].split('/')[0];",
+                      "pm.collectionVariables.set('orcamentoDecisaoToken', token);"
                     ],
                     "type": "text/javascript"
                   }
@@ -10316,10 +10364,10 @@
                     }
                   ]
                 },
-                "method": "PATCH",
+                "method": "POST",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/api/ordens-servico/{{osId}}/aprovar",
+                  "raw": "{{baseUrl}}/api/ordens-servico/{{osId}}/orcamento/notificar-cliente",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -10327,11 +10375,48 @@
                     "api",
                     "ordens-servico",
                     "{{osId}}",
+                    "orcamento",
+                    "notificar-cliente"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "06.7 - Aprovar Orçamento por Token (cliente aceita)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test('Decisão APROVADA', () => pm.expect(body.decisao).to.eql('APROVADA'));",
+                      "pm.test('OS EM_EXECUCAO', () => pm.expect(body.statusOrdemServico).to.eql('EM_EXECUCAO'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/orcamentos/decisoes-cliente/{{orcamentoDecisaoToken}}/aprovar",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "orcamentos",
+                    "decisoes-cliente",
+                    "{{orcamentoDecisaoToken}}",
                     "aprovar"
                   ]
                 }
-              },
-              "response": []
+              }
             },
             {
               "name": "06.8 - Finalizar Serviço (mecânico conclui)",
@@ -10848,13 +10933,17 @@
               "response": []
             },
             {
-              "name": "08.3 - Rejeitar Orçamento (cliente não aceita)",
+              "name": "08.2a - Notificar Cliente sobre Orçamento (rejeição)",
               "event": [
                 {
                   "listen": "test",
                   "script": {
                     "exec": [
-                      "pm.test('OS CANCELADA', () => pm.expect(pm.response.json().status).to.eql('CANCELADA'));"
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test('Link de recusa gerado', () => pm.expect(body.linkRecusa).to.include('/api/orcamentos/decisoes-cliente/'));",
+                      "const token = body.linkRecusa.split('/decisoes-cliente/')[1].split('/')[0];",
+                      "pm.collectionVariables.set('orcamentoRecusaToken', token);"
                     ],
                     "type": "text/javascript"
                   }
@@ -10871,10 +10960,10 @@
                     }
                   ]
                 },
-                "method": "PATCH",
+                "method": "POST",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/api/ordens-servico/{{osRejeicaoId}}/rejeitar",
+                  "raw": "{{baseUrl}}/api/ordens-servico/{{osRejeicaoId}}/orcamento/notificar-cliente",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -10882,11 +10971,48 @@
                     "api",
                     "ordens-servico",
                     "{{osRejeicaoId}}",
-                    "rejeitar"
+                    "orcamento",
+                    "notificar-cliente"
                   ]
                 }
-              },
-              "response": []
+              }
+            },
+            {
+              "name": "08.3 - Recusar Orçamento por Token (cliente não aceita)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "const body = pm.response.json();",
+                      "pm.test('Decisão RECUSADA', () => pm.expect(body.decisao).to.eql('RECUSADA'));",
+                      "pm.test('OS CANCELADA', () => pm.expect(body.statusOrdemServico).to.eql('CANCELADA'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/orcamentos/decisoes-cliente/{{orcamentoRecusaToken}}/recusar",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "orcamentos",
+                    "decisoes-cliente",
+                    "{{orcamentoRecusaToken}}",
+                    "recusar"
+                  ]
+                }
+              }
             }
           ]
         },
@@ -11236,7 +11362,7 @@
                   "listen": "test",
                   "script": {
                     "exec": [
-                      "pm.test('[STEP 01] UsuÃ¡rio registrado (201 ou 409 se jÃ¡ existe)', () => pm.expect([201, 400, 409]).to.include(pm.response.code));"
+                      "pm.test('[STEP 01] Usuário registrado (201 ou 409 se já existe)', () => pm.expect([201, 400, 409]).to.include(pm.response.code));"
                     ],
                     "type": "text/javascript"
                   }
@@ -11318,7 +11444,7 @@
                   "script": {
                     "exec": [
                       "if (pm.response.code === 201) { pm.collectionVariables.set('run_clienteId', pm.response.json().id); }",
-                      "pm.test('[STEP 03] Cliente criado (201) ou jÃ¡ existe', () => pm.expect([201, 422]).to.include(pm.response.code));",
+                      "pm.test('[STEP 03] Cliente criado (201) ou já existe', () => pm.expect([201, 422]).to.include(pm.response.code));",
                       "pm.test('[STEP 03] ID salvo', () => pm.expect(pm.collectionVariables.get('run_clienteId')).to.not.be.undefined);"
                     ],
                     "type": "text/javascript"
@@ -11387,7 +11513,7 @@
                   "script": {
                     "exec": [
                       "if (pm.response.code === 201) { pm.collectionVariables.set('run_veiculoId', pm.response.json().id); }",
-                      "pm.test('[STEP 04] VeÃ­culo criado (201) ou jÃ¡ existe', () => pm.expect([201, 400, 422]).to.include(pm.response.code));",
+                      "pm.test('[STEP 04] Veículo criado (201) ou já existe', () => pm.expect([201, 400, 422]).to.include(pm.response.code));",
                       "pm.test('[STEP 04] ID salvo', () => pm.expect(pm.collectionVariables.get('run_veiculoId')).to.not.be.undefined);"
                     ],
                     "type": "text/javascript"
@@ -12020,6 +12146,638 @@
           "description": "Execução sequencial de ponta a ponta: Registro → Login → Cliente → Veículo → Serviço → Peça → Criar OS → Iniciar Diagnóstico → Gerar Orçamento → Aprovar → Finalizar → Pagamento → Entrega → Tracking.\n\nUse o Collection Runner (▶) para rodar na ordem. Todas as variáveis são propagadas automaticamente entre as etapas."
         }
       ]
+    },
+    {
+      "name": "05 - Notificacao por E-mail ao Cliente (E2E SMTP)",
+      "item": [
+        {
+          "name": "00 - Preparar dados e Login GESTOR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"gestor1\",\n  \"password\": \"senha123\"\n}"
+            },
+            "description": "Antes de rodar esta pasta, defina a variavel da collection emailClienteNotificacao com o e-mail que deve receber as mensagens no Mailtrap/SMTP."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "function randomDigits(size) { var out = ''; for (var i = 0; i < size; i++) { out += Math.floor(Math.random() * 10); } return out; }",
+                  "function cpfCheckDigit(base) { var sum = 0; for (var i = 0; i < base.length; i++) { sum += parseInt(base[i], 10) * (base.length + 1 - i); } var mod = sum % 11; return mod < 2 ? 0 : 11 - mod; }",
+                  "function generateCpf() { var base = randomDigits(9); var d1 = cpfCheckDigit(base); var d2 = cpfCheckDigit(base + d1); return base + d1 + d2; }",
+                  "var email = pm.collectionVariables.get('emailClienteNotificacao');",
+                  "if (!email || email.indexOf('@') === -1) { throw new Error('Defina a variavel emailClienteNotificacao com um e-mail valido antes de rodar esta pasta.'); }",
+                  "var runId = Date.now().toString().slice(-8);",
+                  "pm.collectionVariables.set('email_runId', runId);",
+                  "pm.collectionVariables.set('email_documento', generateCpf());",
+                  "pm.collectionVariables.set('email_placa', 'EML' + runId.slice(-1) + 'A' + runId.slice(-2));",
+                  "['email_tokenGestor','email_tokenAtendente','email_tokenMecanico','email_servicoId','email_pecaId','email_osId','email_osNumero','email_orcamentoDecisaoToken'].forEach(function(k) { pm.collectionVariables.unset(k); });",
+                  "console.log('[EMAIL E2E] runId=' + runId + ', documento=' + pm.collectionVariables.get('email_documento') + ', placa=' + pm.collectionVariables.get('email_placa') + ', email=' + email);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 00] Login GESTOR 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('[EMAIL 00] Token GESTOR recebido', () => pm.expect(json.token).to.be.a('string').and.not.be.empty);",
+                  "pm.collectionVariables.set('email_tokenGestor', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 - Login ATENDENTE",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"atendente1\",\n  \"password\": \"senha123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 01] Login ATENDENTE 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('email_tokenAtendente', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Login MECANICO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"mecanico1\",\n  \"password\": \"senha123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 02] Login MECANICO 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('email_tokenMecanico', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Criar Servico para OS de notificacao",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/servicos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "servicos"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{email_tokenGestor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Servico Email E2E {{email_runId}}\",\n  \"descricao\": \"Servico criado para validar notificacoes de status por e-mail\",\n  \"valorUnitario\": 320.00,\n  \"tempoEstimadoMinutos\": 90\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 03] Servico criado 201', () => pm.response.to.have.status(201));",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('email_servicoId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - Criar Peca para OS de notificacao",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/pecas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pecas"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{email_tokenGestor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Peca Email E2E {{email_runId}}\",\n  \"descricao\": \"Peca criada para validar notificacoes de status por e-mail\",\n  \"quantidadeEstoque\": 20,\n  \"valorUnitario\": 85.00,\n  \"estoqueMinimo\": 2\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 04] Peca criada 201', () => pm.response.to.have.status(201));",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('email_pecaId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Criar OS completa com e-mail do cliente (dispara RECEBIDA)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ordens-servico/completa",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordens-servico",
+                "completa"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{email_tokenAtendente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente\": {\n    \"documento\": \"{{email_documento}}\",\n    \"nome\": \"Cliente Email E2E {{email_runId}}\",\n    \"telefone\": \"11999990000\",\n    \"email\": \"{{emailClienteNotificacao}}\",\n    \"cep\": \"01310100\"\n  },\n  \"veiculo\": {\n    \"placa\": \"{{email_placa}}\",\n    \"marca\": \"Volkswagen\",\n    \"modelo\": \"Polo Email E2E\",\n    \"ano\": 2022\n  },\n  \"servicos\": [\n    {\n      \"servicoId\": {{email_servicoId}},\n      \"quantidade\": 1\n    }\n  ],\n  \"pecas\": [\n    {\n      \"pecaId\": {{email_pecaId}},\n      \"quantidade\": 1\n    }\n  ]\n}"
+            },
+            "description": "Usa emailClienteNotificacao no cadastro do cliente. Esta criacao ja deve disparar a notificacao de status RECEBIDA."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 05] OS completa criada 201', () => pm.response.to.have.status(201));",
+                  "var json = pm.response.json();",
+                  "pm.test('[EMAIL 05] Status inicial RECEBIDA', () => pm.expect(json.status).to.eql('RECEBIDA'));",
+                  "pm.collectionVariables.set('email_osId', json.id);",
+                  "pm.collectionVariables.set('email_osNumero', json.numero);",
+                  "console.log('[EMAIL 05] Deve chegar e-mail de status RECEBIDA para', pm.collectionVariables.get('emailClienteNotificacao'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Iniciar diagnostico (dispara EM_DIAGNOSTICO)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ordens-servico/{{email_osId}}/iniciar-diagnostico",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordens-servico",
+                "{{email_osId}}",
+                "iniciar-diagnostico"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{email_tokenMecanico}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 06] Diagnostico iniciado 200', () => pm.response.to.have.status(200));",
+                  "pm.test('[EMAIL 06] Status EM_DIAGNOSTICO', () => pm.expect(pm.response.json().status).to.eql('EM_DIAGNOSTICO'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - Gerar orcamento (dispara AGUARDANDO_APROVACAO)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ordens-servico/{{email_osId}}/orcamento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordens-servico",
+                "{{email_osId}}",
+                "orcamento"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{email_tokenAtendente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 07] Orcamento gerado 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 - Notificar cliente sobre orcamento (e-mail com links de decisao)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ordens-servico/{{email_osId}}/orcamento/notificar-cliente",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordens-servico",
+                "{{email_osId}}",
+                "orcamento",
+                "notificar-cliente"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{email_tokenAtendente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 08] Notificacao de orcamento criada 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('[EMAIL 08] E-mail destino usa variavel informada', () => pm.expect(json.emailDestino).to.eql(pm.collectionVariables.get('emailClienteNotificacao')));",
+                  "pm.test('[EMAIL 08] Links de aprovacao e recusa retornados', () => { pm.expect(json.linkAprovacao).to.include('/aprovar'); pm.expect(json.linkRecusa).to.include('/recusar'); });",
+                  "var token = String(json.linkAprovacao).split('/decisoes-cliente/')[1].split('/aprovar')[0];",
+                  "pm.collectionVariables.set('email_orcamentoDecisaoToken', token);",
+                  "console.log('[EMAIL 08] Deve chegar e-mail de orcamento com links de decisao. Token salvo.');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 - Aprovar orcamento por token (dispara EM_EXECUCAO)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orcamentos/decisoes-cliente/{{email_orcamentoDecisaoToken}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orcamentos",
+                "decisoes-cliente",
+                "{{email_orcamentoDecisaoToken}}",
+                "aprovar"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 09] Aprovacao por token 200', () => pm.response.to.have.status(200));",
+                  "pm.test('[EMAIL 09] OS EM_EXECUCAO', () => pm.expect(pm.response.json().statusOrdemServico).to.eql('EM_EXECUCAO'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 - Finalizar servico (dispara FINALIZADA)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ordens-servico/{{email_osId}}/finalizar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordens-servico",
+                "{{email_osId}}",
+                "finalizar"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{email_tokenMecanico}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 10] Servico finalizado 200', () => pm.response.to.have.status(200));",
+                  "pm.test('[EMAIL 10] Status FINALIZADA', () => pm.expect(pm.response.json().status).to.eql('FINALIZADA'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 - Registrar pagamento PIX (dispara AGUARDANDO_RETIRADA)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ordens-servico/{{email_osId}}/pagamento?metodoPagamento=PIX",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordens-servico",
+                "{{email_osId}}",
+                "pagamento"
+              ],
+              "query": [
+                {
+                  "key": "metodoPagamento",
+                  "value": "PIX"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{email_tokenAtendente}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Para garantir o e-mail de AGUARDANDO_RETIRADA e permitir a entrega, use PAGAMENTO_GATEWAY_APPROVAL_RATE=1.0 no ambiente Docker."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 11] Pagamento aprovado 200', () => {",
+                  "  if (pm.response.code !== 200) { console.warn('Pagamento recusado pelo gateway mock. Para este fluxo, configure PAGAMENTO_GATEWAY_APPROVAL_RATE=1.0 no docker-compose e rode novamente.'); }",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('[EMAIL 11] Status AGUARDANDO_RETIRADA', () => pm.expect(pm.response.json().status).to.eql('AGUARDANDO_RETIRADA'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 - Entregar veiculo (dispara ENTREGUE)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ordens-servico/{{email_osId}}/entregar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordens-servico",
+                "{{email_osId}}",
+                "entregar"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{email_tokenAtendente}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 12] Veiculo entregue 200', () => pm.response.to.have.status(200));",
+                  "pm.test('[EMAIL 12] Status ENTREGUE', () => pm.expect(pm.response.json().status).to.eql('ENTREGUE'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 - Consultar tracking publico pelo numero",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ordens-servico/numero/{{email_osNumero}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "ordens-servico",
+                "numero",
+                "{{email_osNumero}}",
+                "status"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[EMAIL 13] Tracking publico 200', () => pm.response.to.have.status(200));",
+                  "pm.test('[EMAIL 13] Status final ENTREGUE', () => pm.expect(pm.response.json().status).to.eql('ENTREGUE'));",
+                  "pm.test('[EMAIL 13] Numero da OS correto', () => pm.expect(pm.response.json().numero).to.eql(pm.collectionVariables.get('email_osNumero')));",
+                  "console.log('[EMAIL E2E] Fluxo concluido. Confira no Mailtrap os e-mails para: ' + pm.collectionVariables.get('emailClienteNotificacao'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Fluxo dedicado para validar envio real de notificacoes por e-mail ao cliente. Antes de executar, configure emailClienteNotificacao com um e-mail valido e rode a aplicacao com OFICINA_EMAIL_MODE=SMTP. Para garantir todos os status, configure PAGAMENTO_GATEWAY_APPROVAL_RATE=1.0."
     }
   ],
   "variable": [
@@ -12213,6 +12971,54 @@
     },
     {
       "key": "run_osNumero",
+      "value": ""
+    },
+    {
+      "key": "emailClienteNotificacao",
+      "value": "seu.email@exemplo.com"
+    },
+    {
+      "key": "email_runId",
+      "value": ""
+    },
+    {
+      "key": "email_documento",
+      "value": ""
+    },
+    {
+      "key": "email_placa",
+      "value": ""
+    },
+    {
+      "key": "email_tokenGestor",
+      "value": ""
+    },
+    {
+      "key": "email_tokenAtendente",
+      "value": ""
+    },
+    {
+      "key": "email_tokenMecanico",
+      "value": ""
+    },
+    {
+      "key": "email_servicoId",
+      "value": ""
+    },
+    {
+      "key": "email_pecaId",
+      "value": ""
+    },
+    {
+      "key": "email_osId",
+      "value": ""
+    },
+    {
+      "key": "email_osNumero",
+      "value": ""
+    },
+    {
+      "key": "email_orcamentoDecisaoToken",
       "value": ""
     }
   ]

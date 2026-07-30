@@ -34,3 +34,15 @@ build/
 
 ### Mac ###
 .DS_Store
+
+### Local environment ###
+.env
+k8s/secret.local.yaml
+
+### Terraform ###
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+backend.tf
+*.tfplan

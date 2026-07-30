@@ -1,0 +1,10 @@
+target/
+.git/
+.github/
+.idea/
+.vscode/
+allure-results/
+docs/ReportOWASP/
+*.iml
+*.log
+.env
