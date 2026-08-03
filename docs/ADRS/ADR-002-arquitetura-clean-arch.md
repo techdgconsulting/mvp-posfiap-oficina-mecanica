@@ -1,7 +1,7 @@
 # ADR-002: Arquitetura Clean Architecture com Ports e Adapters
 
 **Status:** Aceito  
-**Data:** 2026-05-04 
+**Data:** 2026-07-02 
 **Autor:** Diego Gonzalez
 **Contexto do Projeto:** Sistema de Oficina Mecânica DGCar - Pós-graduação FIAP
 

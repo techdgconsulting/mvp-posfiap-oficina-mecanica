@@ -38,6 +38,7 @@ build/
 ### Local environment ###
 .env
 k8s/secret.local.yaml
+docs/fase-2/
 
 ### Terraform ###
 .terraform/

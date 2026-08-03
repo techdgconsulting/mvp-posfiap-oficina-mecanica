@@ -1,9 +1,9 @@
 terraform {
   backend "s3" {
-    bucket         = "oficina-dgcar-academic-tfstate-substitua-por-sufixo-unico"
-    key            = "oficina-dgcar/academic/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "oficina-dgcar-academic-terraform-lock"
-    encrypt        = true
+    bucket       = "oficina-dgcar-fiap-tfstate-tsoat16"
+    key          = "oficina-dgcar/academic/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
   }
 }

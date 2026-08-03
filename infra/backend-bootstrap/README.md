@@ -8,7 +8,7 @@ Recursos criados:
 - Versionamento no bucket.
 - Criptografia SSE-S3 (`AES256`).
 - Bloqueio de acesso público.
-- DynamoDB table para lock do Terraform.
+- Lock nativo do state por arquivo `.tflock` no S3.
 
 ## Por Que Separar O Bootstrap?
 
@@ -54,4 +54,4 @@ terraform output backend_config_example
 
 ## Observação
 
-Este bootstrap também terá um state local. Como ele só gerencia bucket e tabela de lock, isso é aceitável para o projeto acadêmico. Não versionar `terraform.tfvars` nem `terraform.tfstate`.
+Este bootstrap também terá um state local. Como ele só gerencia o bucket do backend, isso é aceitável para o projeto acadêmico. Não versionar `terraform.tfvars` nem `terraform.tfstate`.
