@@ -55,6 +55,8 @@ Em producao real, a recomendacao seria usar nodes em subnets privadas, NAT Gatew
 
 Antes de criar a infraestrutura principal, crie o backend remoto do Terraform:
 
+Nao execute `terraform init` na pasta `infra` antes deste passo. A infra principal referencia um backend S3, e esse bucket precisa existir antes da inicializacao.
+
 ```bash
 cd infra/backend-bootstrap
 cp terraform.tfvars.example terraform.tfvars
@@ -66,7 +68,7 @@ Edite `terraform.tfvars` e escolha um bucket S3 globalmente unico:
 state_bucket_name = "oficina-dgcar-academic-tfstate-seu-sufixo-unico"
 ```
 
-Crie o bucket e a tabela de lock:
+Crie o bucket:
 
 ```bash
 terraform init
@@ -81,6 +83,8 @@ terraform output backend_config_example
 ```
 
 ### 2. Configurar A Infra Principal Para Usar S3
+
+Siga para este passo somente depois que o bootstrap criar o bucket S3.
 
 Volte para a pasta `infra`:
 
@@ -97,7 +101,13 @@ Inicialize o backend remoto:
 terraform init
 ```
 
-Se ja existir state local da infra principal, use:
+Se voce estiver revalidando o roteiro em uma pasta que ja foi usada antes e o Terraform acusar mudanca de backend, limpe os arquivos locais ignorados ou reinicialize com:
+
+```bash
+terraform init -reconfigure
+```
+
+Use migracao somente quando existir um state local que realmente precisa ser enviado para o S3:
 
 ```bash
 terraform init -migrate-state
@@ -154,6 +164,8 @@ terraform output
 Use o output `spring_datasource_url` no `k8s/configmap.yaml` antes de aplicar os manifestos Kubernetes. A variável `OFICINA_PUBLIC_BASE_URL` só deve ser trocada pela URL real depois que o `Service` do tipo `LoadBalancer` existir e o comando `kubectl get svc oficina-api -n oficina` mostrar um `EXTERNAL-IP`.
 
 Use o output `ecr_repository_url` para publicar a imagem Docker no ECR e apontar o `Deployment` para a imagem real. No deploy manual, a imagem precisa existir no ECR antes de validar o rollout; na pipeline CI/CD, esse build/push e o `kubectl set image` sao executados automaticamente.
+
+Para deploy via GitHub Actions, o usuario IAM da esteira tambem precisa estar liberado no acesso do EKS. Se o cluster estiver em `Authentication mode = ConfigMap`, altere para `API_AND_CONFIG_MAP`, crie uma access entry para o ARN do usuario IAM da pipeline e associe `AmazonEKSClusterAdminPolicy` com escopo `cluster`.
 
 ## Destruicao do Ambiente
 

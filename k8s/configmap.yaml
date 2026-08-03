@@ -7,8 +7,8 @@ metadata:
     app.kubernetes.io/name: oficina-api
     app.kubernetes.io/part-of: oficina-mecanica-dgcar
 data:
-  SPRING_DATASOURCE_URL: "jdbc:postgresql://oficina-dgcar-t16soat-development-postgres.curuqcwkaa6w.us-east-1.rds.amazonaws.com:5432/oficina"
-  OFICINA_PUBLIC_BASE_URL: "http://a75c6892c540b4665ac74b4042c458a7-1571462807.us-east-1.elb.amazonaws.com"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://oficina-dgcar-16soat-development-postgres.curuqcwkaa6w.us-east-1.rds.amazonaws.com:5432/oficina"
+  OFICINA_PUBLIC_BASE_URL: "http://acdb27a640d3c402881f2317af45d85d-1010513329.us-east-1.elb.amazonaws.com"
   OFICINA_EMAIL_ENABLED: "false"
   OFICINA_EMAIL_MODE: "LOG"
   OFICINA_EMAIL_REMETENTE: "no-reply@dgcar.local"
