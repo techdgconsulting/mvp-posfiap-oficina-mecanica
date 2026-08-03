@@ -105,3 +105,15 @@ variable "db_max_allocated_storage" {
   type        = number
   default     = 30
 }
+
+variable "enable_github_actions_eks_access" {
+  description = "Whether Terraform should configure IAM/EKS permissions for the GitHub Actions deployment user."
+  type        = bool
+  default     = false
+}
+
+variable "github_actions_iam_user_name" {
+  description = "Existing IAM user name used by GitHub Actions to push images to ECR and deploy to EKS."
+  type        = string
+  default     = "github-actions-oficina-dgcar"
+}
