@@ -16,3 +16,8 @@ db_password              = "oficina123"
 db_instance_class        = "db.t4g.micro"
 db_allocated_storage     = 20
 db_max_allocated_storage = 30
+
+# Optional: enable only if a maintainer will deploy through GitHub Actions.
+# The IAM user must already exist in AWS IAM; Terraform attaches policies and creates the EKS access entry.
+enable_github_actions_eks_access = false
+github_actions_iam_user_name     = "github-actions-oficina-dgcar"

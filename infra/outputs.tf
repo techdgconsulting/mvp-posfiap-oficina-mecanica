@@ -47,3 +47,8 @@ output "spring_datasource_url" {
   description = "JDBC URL to use in Kubernetes ConfigMap."
   value       = "jdbc:postgresql://${aws_db_instance.postgres.address}:5432/${var.db_name}"
 }
+
+output "github_actions_iam_user_arn" {
+  description = "Expected IAM user ARN for the GitHub Actions deployment user when optional access automation is enabled."
+  value       = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/${var.github_actions_iam_user_name}"
+}
