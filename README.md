@@ -536,103 +536,109 @@ Para o GitHub Actions fazer deploy, ele precisa de dois niveis de permissao:
 - permissao IAM na AWS para acessar ECR e descrever o cluster EKS;
 - permissao Kubernetes dentro do cluster EKS para executar `kubectl apply`, `kubectl set image` e `kubectl rollout status`.
 
-O usuario deverá ser criado na AWS IAM. Pelo Console AWS, acesse `IAM > Users > Create user` e crie um usuario programatico especifico para a esteira, por exemplo:
+##### 11.1 Criar O Usuario IAM Da Pipeline
+
+O usuario deve existir na AWS IAM. Pelo Console AWS, acesse `IAM > Users > Create user` e crie um usuario programatico especifico para a esteira, por exemplo:
 
 ```text
 github-actions-oficina-dgcar
 ```
 
-Nao use access key do usuario root. Anexe ao usuario IAM uma policy com permissoes de push no ECR e leitura do cluster EKS. Pode usar as policies gerenciadas:
+Nao use access key do usuario root. Depois gere uma access key para esse usuario em `IAM > Users > github-actions-oficina-dgcar > Security credentials > Create access key`. Os valores gerados serao cadastrados nos GitHub Secrets `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` no passo 12.
 
-```text
-AmazonEC2ContainerRegistryPowerUser
-AmazonEKSClusterPolicy
+##### 11.2 Automatizar Permissoes Com Terraform
+
+O Terraform da pasta `infra` pode automatizar as permissoes da pipeline para um usuario IAM ja existente. Para habilitar, configure no `infra/terraform.tfvars`:
+
+```hcl
+enable_github_actions_eks_access = true
+github_actions_iam_user_name     = "github-actions-oficina-dgcar"
 ```
 
-Depois gere uma access key para esse usuario em `IAM > Users > github-actions-oficina-dgcar > Security credentials > Create access key`. Os valores gerados serao cadastrados nos GitHub Secrets `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` no passo 12.
-
-Se o cluster estiver com `Authentication mode = ConfigMap`, habilite tambem o modo de access entries:
+Depois aplique a infra novamente:
 
 ```bash
 cd infra
-CLUSTER_NAME=$(terraform output -raw eks_cluster_name)
-cd ..
-
-aws eks update-cluster-config \
-  --name $CLUSTER_NAME \
-  --region us-east-1 \
-  --access-config authenticationMode=API_AND_CONFIG_MAP
+terraform plan
+terraform apply
 ```
 
-Aguarde o cluster voltar para `Active`:
+Com essa opcao habilitada, o Terraform:
+
+- anexa `AmazonEC2ContainerRegistryPowerUser` ao usuario IAM da pipeline;
+- cria uma policy inline permitindo `eks:DescribeCluster` no cluster criado;
+- cria a `aws_eks_access_entry` para o usuario IAM no EKS;
+- associa `AmazonEKSClusterAdminPolicy` ao usuario no escopo do cluster.
+
+Para conferir o ARN esperado do usuario da pipeline:
 
 ```bash
-aws eks describe-cluster \
-  --name $CLUSTER_NAME \
-  --region us-east-1 \
-  --query "cluster.status"
+terraform output github_actions_iam_user_arn
 ```
 
-Depois crie, no EKS, uma access entry para o ARN do usuario IAM da pipeline. Essa access entry e o vinculo que permite ao usuario IAM autenticar no cluster Kubernetes.
+##### 11.3 Alternativa Manual Pelo Console AWS
 
-O ARN do usuario pode ser copiado no Console AWS em `IAM > Users > github-actions-oficina-dgcar > Summary > ARN`. Pelo terminal, recupere e guarde o ARN em uma variavel:
+Se nao quiser automatizar pelo Terraform, faca todos os passos abaixo no Console AWS.
+
+**A. Anexar permissao de ECR ao usuario IAM**
+
+1. Acesse `IAM > Users > github-actions-oficina-dgcar > Permissions`.
+2. Clique em `Add permissions`.
+3. Escolha `Attach policies directly`.
+4. Procure e selecione `AmazonEC2ContainerRegistryPowerUser`.
+5. Confirme em `Add permissions`.
+
+**B. Criar policy inline para `eks:DescribeCluster`**
+
+1. Ainda em `IAM > Users > github-actions-oficina-dgcar > Permissions`, clique em `Add permissions`.
+2. Escolha `Create inline policy`.
+3. Abra a aba `JSON`.
+4. Cole a policy abaixo, trocando `<aws-account-id>` e `<eks_cluster_name>` pelos valores reais:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "eks:DescribeCluster",
+      "Resource": "arn:aws:eks:us-east-1:<aws-account-id>:cluster/<eks_cluster_name>"
+    }
+  ]
+}
+```
+
+Para obter os valores:
 
 ```bash
-PIPELINE_USER_ARN=$(aws iam get-user \
-  --user-name github-actions-oficina-dgcar \
-  --query "User.Arn" \
-  --output text)
-
-echo "$PIPELINE_USER_ARN"
+aws sts get-caller-identity --query Account --output text
+cd infra
+terraform output -raw eks_cluster_name
 ```
 
-O valor exibido deve ter o formato:
+5. Clique em `Next`.
+6. Informe um nome, por exemplo `github-actions-describe-oficina-eks`.
+7. Clique em `Create policy`.
 
-```text
-arn:aws:iam::<aws-account-id>:user/github-actions-oficina-dgcar
-```
+**C. Criar a access entry no EKS**
 
-Com a variavel preenchida, crie a access entry no cluster EKS:
+1. Copie o ARN do usuario em `IAM > Users > github-actions-oficina-dgcar > Summary > ARN`.
+2. Acesse `EKS > Clusters > <eks_cluster_name> > Access`.
+3. Clique em `Create access entry`.
+4. Em `IAM principal ARN`, cole o ARN do usuario `github-actions-oficina-dgcar`.
+5. Em `Type`, escolha `Standard`.
+6. Avance para a etapa de policy.
+7. Em `Access policy`, selecione `AmazonEKSClusterAdminPolicy`.
+8. Em `Access scope`, selecione `Cluster`.
+9. Conclua em `Create`.
 
-```bash
-aws eks create-access-entry \
-  --cluster-name $CLUSTER_NAME \
-  --region us-east-1 \
-  --principal-arn $PIPELINE_USER_ARN \
-  --type STANDARD
-```
-
-Pelo Console AWS, o caminho equivalente e `EKS > Clusters > <eks_cluster_name> > Access > IAM access entries > Create`.
-
-Associe a policy de acesso ao cluster:
-
-```bash
-aws eks associate-access-policy \
-  --cluster-name $CLUSTER_NAME \
-  --region us-east-1 \
-  --principal-arn $PIPELINE_USER_ARN \
-  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
-  --access-scope type=cluster
-```
-
-Pelo console AWS, o caminho equivalente é:
-
-```text
-EKS > Clusters > <eks_cluster_name> > Access > Manage
-Authentication mode: API and ConfigMap
-
-EKS > Clusters > <eks_cluster_name> > Access > IAM access entries > Create
-IAM principal ARN: arn:aws:iam::<aws-account-id>:user/github-actions-oficina-dgcar
-Type: Standard
-Access policy: AmazonEKSClusterAdminPolicy
-Access scope: Cluster
-```
+O `eks:DescribeCluster` e necessario porque a pipeline executa `aws eks update-kubeconfig`. A access entry e necessaria porque, depois de autenticar na AWS, a pipeline tambem precisa de permissao Kubernetes dentro do cluster.
 
 #### 12. Configurar GitHub Secrets (Opcional Para Mantenedores)
 
-Este passo nao e necessario para o deploy manual. Ele É necessario apenas para quem tem permissao administrativa no repositorio e vai executar o deploy pela pipeline do GitHub Actions.
+Este passo nao e necessario para o deploy manual do avaliador. Ele e necessario apenas para quem tem permissao administrativa no repositorio e vai executar o deploy pela pipeline do GitHub Actions.
 
-Configure no repositório GitHub:
+Configure no repositorio GitHub:
 
 ```text
 AWS_ACCESS_KEY_ID
@@ -676,7 +682,7 @@ openssl rand -base64 48
 
 #### 13. Commitar E Disparar A Esteira CI/CD (Opcional Para Mantenedores)
 
-Este passo nao e necessario para o deploy manual do avaliador. Use apenas quando os GitHub Secrets ja estiverem configurados e o usuario/role da pipeline ja tiver acesso ao EKS.
+Este passo nao e necessario para o deploy manual. Use apenas quando os GitHub Secrets ja estiverem configurados e o usuario/role da pipeline ja tiver acesso ao EKS.
 
 ```bash
 git status
@@ -988,8 +994,8 @@ Jobs da pipeline:
 | Job | Etapas |
 |---|---|
 | `test` | Checkout, setup Java 17 com cache Maven, `mvn clean test` e upload de relatÃ³rios. |
-| `docker-build` | Build local da imagem Docker para validar o Dockerfile. |
-| `deploy` | Login AWS/ECR, build da imagem, push para ECR, update kubeconfig, criaÃ§Ã£o do Secret, `kubectl apply -k k8s`, atualizaÃ§Ã£o da imagem e `rollout status`. |
+| `docker-build` | Executa somente em `pull_request`; faz build local da imagem Docker para validar o Dockerfile, sem push e sem deploy. |
+| `deploy` | Executa somente fora de `pull_request`; faz login AWS/ECR, build da imagem, push para ECR, update kubeconfig, criaÃ§Ã£o do Secret, `kubectl apply -k k8s`, atualizaÃ§Ã£o da imagem e `rollout status`. |
 
 Secrets necessÃ¡rios no GitHub:
 
@@ -1006,7 +1012,19 @@ Secrets necessÃ¡rios no GitHub:
 | `SMTP_USERNAME` | UsuÃ¡rio SMTP, vazio se e-mail real estiver desabilitado. |
 | `SMTP_PASSWORD` | Senha SMTP, vazio se e-mail real estiver desabilitado. |
 
-Fluxo do deploy:
+Fluxo em pull request:
+
+```text
+pull_request
+   |
+   v
+mvn clean test
+   |
+   v
+docker build local
+```
+
+Fluxo de deploy:
 
 ```text
 push main
