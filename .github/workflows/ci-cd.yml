@@ -46,11 +46,20 @@ jobs:
           TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
           AWS_REGION: ${{ env.AWS_REGION }}
         run: |
+          echo "Current AWS principal: $(aws sts get-caller-identity --query Arn --output text)"
+
           if aws s3api head-bucket --bucket "$TF_STATE_BUCKET" --region "$AWS_REGION" >/dev/null 2>&1; then
             echo "Terraform backend bucket already exists: $TF_STATE_BUCKET"
           else
             echo "Terraform backend bucket not found. Creating bucket: $TF_STATE_BUCKET"
-            aws s3 mb "s3://$TF_STATE_BUCKET" --region "$AWS_REGION"
+            if aws s3 mb "s3://$TF_STATE_BUCKET" --region "$AWS_REGION"; then
+              echo "Bucket created successfully."
+            else
+              echo "Bucket creation failed because the current AWS principal does not have s3:CreateBucket permission."
+              echo "Create the S3 bucket once with an AWS admin/root principal or run the bootstrap Terraform under privileged credentials."
+              echo "Then rerun the workflow with the same TF_STATE_BUCKET secret."
+              exit 1
+            fi
           fi
 
       - name: Create backend file for Terraform
