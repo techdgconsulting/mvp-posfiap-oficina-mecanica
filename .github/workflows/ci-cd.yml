@@ -40,6 +40,19 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Ensure Terraform backend bucket exists
+        shell: bash
+        env:
+          TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        run: |
+          if aws s3api head-bucket --bucket "$TF_STATE_BUCKET" --region "$AWS_REGION" >/dev/null 2>&1; then
+            echo "Terraform backend bucket already exists: $TF_STATE_BUCKET"
+          else
+            echo "Terraform backend bucket not found. Creating bucket: $TF_STATE_BUCKET"
+            aws s3 mb "s3://$TF_STATE_BUCKET" --region "$AWS_REGION"
+          fi
+
       - name: Create backend file for Terraform
         working-directory: infra
         run: |
