@@ -1,7 +1,7 @@
-﻿# ðŸ”§ Oficina MecÃ¢nica API
+# 🔧 Oficina Mecânica API
 
-> **Tech Challenge â€” PÃ³s-GraduaÃ§Ã£o FIAP**
-> MVP de back-end para gestÃ£o completa de uma oficina mecÃ¢nica.
+> **Tech Challenge — Pós-Graduação FIAP**
+> MVP de back-end para gestão completa de uma oficina mecânica.
 
 ![Java](https://img.shields.io/badge/Java-17-blue?logo=openjdk)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5.16-6DB33F?logo=springboot&logoColor=white)
@@ -12,120 +12,130 @@
 
 ---
 
-## ðŸ“‹ Sobre o projeto
+## 📋 Sobre o projeto
 
-API REST que cobre o ciclo completo de atendimento de uma oficina mecÃ¢nica: do cadastro de clientes e veÃ­culos atÃ© a entrega do veÃ­culo apÃ³s pagamento. Desenvolvido com arquitetura **DDD (Domain-Driven Design)** em camadas, autenticaÃ§Ã£o **JWT** e controle de acesso por perfil (**RBAC**).
+API REST que cobre o ciclo completo de atendimento de uma oficina mecânica: do cadastro de clientes e veículos até a entrega do veículo após pagamento. Desenvolvido com arquitetura **DDD (Domain-Driven Design)** em camadas, autenticação **JWT** e controle de acesso por perfil (**RBAC**).
 
 **Funcionalidades principais:**
-- Cadastro de clientes (CPF/CNPJ) com busca automÃ¡tica de endereÃ§o via **ViaCEP**
-- Cadastro de veÃ­culos vinculados a clientes
-- CatÃ¡logo de serviÃ§os e controle de estoque de peÃ§as (com alerta de estoque mÃ­nimo)
-- Ordens de serviÃ§o com fluxo completo de 7 estados
-- GeraÃ§Ã£o de orÃ§amentos, aprovaÃ§Ã£o interna e decisÃ£o externa segura por token
-- NotificaÃ§Ã£o informativa por e-mail ao cliente a cada mudanÃ§a relevante de status da OS
-- Registro de pagamento via gateway (mock configurÃ¡vel)
-- KPIs de tempo mÃ©dio de execuÃ§Ã£o e atendimento
+- Cadastro de clientes (CPF/CNPJ) com busca automática de endereço via **ViaCEP**
+- Cadastro de veículos vinculados a clientes
+- Catálogo de serviços e controle de estoque de peças (com alerta de estoque mínimo)
+- Ordens de serviço com fluxo completo de 7 estados
+- Geração de orçamentos, aprovação interna e decisão externa segura por token
+- Notificação informativa por e-mail ao cliente a cada mudança relevante de status da OS
+- Registro de pagamento via gateway (mock configurável)
+- KPIs de tempo médio de execução e atendimento
 
 
-## ðŸš€ Stack
+## 🚀 Stack
 
 | Camada | Tecnologia |
 |---|---|
 | Linguagem / Framework | Java 17 + Spring Boot 3.5.16 |
-| Banco de dados | PostgreSQL 16 (produÃ§Ã£o) Â· H2 (dev/test) |
+| Banco de dados | PostgreSQL 16 (produção) · H2 (dev/test) |
 | Migrations | Flyway |
-| SeguranÃ§a | Spring Security + JWT (HMAC-SHA256) |
-| DocumentaÃ§Ã£o | SpringDoc OpenAPI 2.8.17 (Swagger) |
-| Testes | JUnit 5 + Mockito Â· JaCoCo Â· Allure Report |
+| Segurança | Spring Security + JWT (HMAC-SHA256) |
+| Documentação | SpringDoc OpenAPI 2.8.17 (Swagger) |
+| Testes | JUnit 5 + Mockito · JaCoCo · Allure Report |
 | Infraestrutura | Docker + Docker Compose |
-| NotificaÃ§Ãµes | Spring Mail + SMTP configurÃ¡vel |
+| Notificações | Spring Mail + SMTP configurável |
 
 
 ---
 
 
 
-## ---------------------------------------------------------------- EvoluÃ§Ãµes do Projeto - Fase 2 Tech Challenge -------------------------------------------------------------
+##  Evoluções do Projeto - Fase 2 Tech Challenge
 
 ### Objetivo da Fase 2
 
-A Fase 2 prepara o projeto para implantaÃ§Ã£o conteinerizada e automatizada em AWS, mantendo o foco acadÃªm. O escopo inclui Docker, Docker Compose, Kubernetes, Amazon EKS, Amazon ECR, Amazon RDS PostgreSQL, Terraform, backend remoto de state em S3, CI/CD com GitHub Actions, secrets externos ao repositÃ³rio e documentaÃ§Ã£o operacional.
+A Fase 2 prepara o projeto para implantação conteinerizada e automatizada em AWS. O escopo inclui Docker, Docker Compose, Kubernetes, Amazon EKS, Amazon ECR, Amazon RDS PostgreSQL, Terraform, backend remoto de state em S3, CI/CD com GitHub Actions, secrets externos ao repositório e documentação operacional.
 
 ### Arquitetura
 
-O projeto iniciou com uma organizaÃ§Ã£o mais prÃ³xima de uma arquitetura em camadas tradicional, com separaÃ§Ã£o entre interfaces, serviÃ§os de aplicaÃ§Ã£o, domÃ­nio e infraestrutura. Com a evoluÃ§Ã£o funcional do sistema e a necessidade de explicitar melhor os limites arquiteturais, a estrutura foi migrada para uma abordagem baseada em Clean Architecture, mantendo elementos compatÃ­veis com Ports and Adapters.
+O projeto iniciou com uma organização mais próxima de uma arquitetura em camadas tradicional, com separação entre interfaces, serviços de aplicação, domínio e infraestrutura. Com a evolução funcional do sistema e a necessidade de explicitar melhor os limites arquiteturais, a estrutura foi migrada para uma abordagem baseada em Clean Architecture, mantendo elementos compatíveis com Ports and Adapters.
 
-AdoÃ§Ã£o da Clean Architecture como estilo arquitetural principal do projeto, organizada em torno de domÃ­nio, casos de uso, ports e adapters. A arquitetura atual substitui a leitura anterior de camadas genÃ©ricas por uma separaÃ§Ã£o explÃ­cita entre nÃºcleo de negÃ³cio, orquestraÃ§Ã£o de aplicaÃ§Ã£o e mecanismos externos:
+Adoção da Clean Architecture como estilo arquitetural principal do projeto, organizada em torno de domínio, casos de uso, ports e adapters. A arquitetura atual substitui a leitura anterior de camadas genéricas por uma separação explícita entre núcleo de negócio, orquestração de aplicação e mecanismos externos:
 
 
-domain/               â†’ Modelos, Value Objects e exceÃ§Ãµes de domÃ­nio
-application/          â†’ Casos de uso, comandos, queries e ports
-application/port/in   â†’ Contratos de entrada consumidos pelos adapters inbound
-application/port/out  â†’ Contratos de saÃ­da implementados pelos adapters outbound
-adapters/in/web       â†’ Controllers REST, requests, responses e mappers web
-adapters/out          â†’ PersistÃªncia, pagamento, seguranÃ§a e integraÃ§Ãµes externas
-infrastructure/       â†’ ConfiguraÃ§Ãµes Spring, seguranÃ§a JWT e clientes tÃ©cnicos
+# Estrutura da Clean Architecture
 
-Essa decisÃ£o estÃ¡ registrada na [ADR-002](./docs/ADRS/ADR-002-arquitetura-clean-arch.md).
+| Camada | Responsabilidade |
+|--------|------------------|
+| 🟨 **domain/** <br><sub>Enterprise Business Rules</sub> | Contém o núcleo do negócio da aplicação, incluindo **Entities**, **Value Objects**, **Enums**, **Exceções de Domínio** e regras de negócio puras, sem dependência de frameworks ou infraestrutura. |
+| 🟥 **application/** <br><sub>Application Business Rules</sub> | Implementa os **Casos de Uso**, **Commands**, **Queries** e a orquestração da aplicação. Define os contratos (Ports) utilizados para comunicação entre o domínio e as camadas externas. |
+| 🟥 **application/port/in/** <br><sub>Application Business Rules</sub> | Define os **Input Ports**, ou seja, os contratos de entrada consumidos pelos adapters inbound (Controllers, Mensageria, Scheduler etc.), representando as operações disponíveis da aplicação. |
+| 🟥 **application/port/out/** <br><sub>Application Business Rules</sub> | Define os **Output Ports**, responsáveis pelos contratos de saída utilizados pelos casos de uso para acessar persistência, serviços externos, mensageria, autenticação e demais dependências. |
+| 🟩 **adapters/in/web/** <br><sub>Interface Adapters</sub> | Implementa os adapters de entrada da aplicação, contendo **Controllers REST**, **DTOs de Request/Response**, **Mappers** e validações responsáveis por converter requisições HTTP em chamadas aos casos de uso. |
+| 🟩 **adapters/out/** <br><sub>Interface Adapters</sub> | Implementa os adapters de saída da aplicação, incluindo **Repositórios**, **Clientes HTTP**, **Integrações Externas**, **Gateways**, **Persistência**, **Segurança**, **Mensageria** e demais implementações dos Output Ports. |
+| 🟦 **infrastructure/** <br><sub>Frameworks & Drivers</sub> | Contém configurações técnicas da aplicação, como **Spring Boot Configuration**, **Security (JWT/OAuth2)**, **Beans**, **Clients**, **Properties**, configuração de banco de dados, observabilidade e demais componentes de infraestrutura. |
 
+### Legenda
+
+| Cor | Camada |
+|------|---------|
+| 🟨 | **Enterprise Business Rules** (Domain) |
+| 🟥 | **Application Business Rules** (Application / Use Cases / Ports) |
+| 🟩 | **Interface Adapters** (Controllers, Gateways, Repositories, Clients) |
+| 🟦 | **Frameworks & Drivers** (Spring, Banco de Dados, Segurança, Infraestrutura) |
+
+
+Essa decisão está registrada na [ADR-002](./docs/ADRS/ADR-002-arquitetura-clean-arch.md).
+
+
+<br>
 
 
 ### Funcionalidades
 
+ ### Abertura de Ordem de Serviço (OS): receber os dados do cliente, veículo, serviços e peças, retornando a identificação única da OS.
 
+O endpoint `POST /api/ordens-servico` preserva o fluxo por `clienteId` e `veiculoId`, indicado para cliente e veículo previamente cadastrados. O endpoint `POST /api/ordens-servico/completa` permite abrir a OS com dados cadastrais de cliente e veículo no mesmo payload, reaproveitando cadastros existentes por documento e placa quando aplicável. Serviços e peças são informados por IDs do catálogo existente; valores não são recebidos livremente no payload.
 
- ### Abertura de Ordem de ServiÃ§o (OS): receber os dados do cliente,veÃ­culo, serviÃ§os e peÃ§as, retornando a identificaÃ§Ã£o Ãºnica da OS.
-
-O endpoint `POST /api/ordens-servico` preserva o fluxo por `clienteId` e `veiculoId`, indicado para cliente e veÃ­culo previamente cadastrados. O endpoint `POST /api/ordens-servico/completa` permite abrir a OS com dados cadastrais de cliente e veÃ­culo no mesmo payload, reaproveitando cadastros existentes por documento e placa quando aplicÃ¡vel. ServiÃ§os e peÃ§as sÃ£o informados por IDs do catÃ¡logo existente; valores nÃ£o sÃ£o recebidos livremente no payload.
-
-No cadastro direto de cliente e na abertura completa de OS, o CEP atua como enriquecimento cadastral opcional. Quando um cliente novo Ã© criado e apenas o CEP Ã© informado, o sistema tenta consultar o ViaCEP para preencher logradouro, bairro, cidade e UF; falha ou ausÃªncia de retorno do ViaCEP nÃ£o bloqueia a criaÃ§Ã£o. Na abertura completa, clientes jÃ¡ existentes sÃ£o reaproveitados sem sobrescrever o endereÃ§o cadastrado.
-
-
-
-### Consulta de status da OS: informar a situaÃ§Ã£o atual da OS (Recebida, DiagnÃ³stico, Aguardando AprovaÃ§Ã£o, ExecuÃ§Ã£o, Finalizada, Entregue).
-
-A consulta de status da Ordem de ServiÃ§o estÃ¡ disponÃ­vel por dois caminhos complementares. O endpoint `GET /api/ordens-servico/{id}/status` consulta a situaÃ§Ã£o por identificador interno da OS e requer autenticaÃ§Ã£o JWT, sendo indicado para uso operacional por usuÃ¡rios da oficina. O endpoint `GET /api/ordens-servico/numero/{numero}/status` consulta a situaÃ§Ã£o pelo nÃºmero legÃ­vel gerado pelo sistema, como `OS-2026-00001`, e Ã© indicado para acompanhamento externo pelo cliente.
-
-Os retornos informam a situaÃ§Ã£o atual da OS dentro do fluxo de atendimento, incluindo os estados principais do requisito: `RECEBIDA`, `EM_DIAGNOSTICO`, `AGUARDANDO_APROVACAO`, `EM_EXECUCAO`, `FINALIZADA` e `ENTREGUE`. O fluxo tambÃ©m contempla estados intermediÃ¡rios ou excepcionais usados pela regra de negÃ³cio, como `AGUARDANDO_RETIRADA` e `CANCELADA`.
+No cadastro direto de cliente e na abertura completa de OS, o CEP atua como enriquecimento cadastral opcional. Quando um cliente novo é criado e apenas o CEP é informado, o sistema tenta consultar o ViaCEP para preencher logradouro, bairro, cidade e UF; falha ou ausência de retorno do ViaCEP não bloqueia a criação. Na abertura completa, clientes já existentes são reaproveitados sem sobrescrever o endereço cadastrado.
 
 
 
-### AprovaÃ§Ã£o de orÃ§amento: endpoint para receber notificaÃ§Ãµes externas de aprovaÃ§Ã£o ou recusa do orÃ§amento do cliente.
+### Consulta de status da OS: informar a situação atual da OS (Recebida, Diagnóstico, Aguardando Aprovação, Execução, Finalizada, Entregue).
 
-Foi adicionada uma evoluÃ§Ã£o no fluxo de orÃ§amento para permitir que o cliente aprove ou recuse o orÃ§amento por meio de uma notificaÃ§Ã£o externa. O fluxo interno autenticado foi preservado para uso operacional da oficina, enquanto o novo fluxo externo utiliza token opaco, expiraÃ§Ã£o e uso Ãºnico para permitir a decisÃ£o sem exigir login/JWT do cliente.
+A consulta de status da Ordem de Serviço está disponível por dois caminhos complementares. O endpoint `GET /api/ordens-servico/{id}/status` consulta a situação por identificador interno da OS e requer autenticação JWT, sendo indicado para uso operacional por usuários da oficina. O endpoint `GET /api/ordens-servico/numero/{numero}/status` consulta a situação pelo número legível gerado pelo sistema, como `OS-2026-00001`, e é indicado para acompanhamento externo pelo cliente.
 
-Principais pontos da implementaÃ§Ã£o:
-
-- `POST /api/ordens-servico/{id}/orcamento/notificar-cliente`: endpoint interno, protegido para `ATENDENTE` e `GESTOR`, responsÃ¡vel por gerar a solicitaÃ§Ã£o de decisÃ£o e enviar a notificaÃ§Ã£o ao e-mail cadastrado.
-- `POST /api/orcamentos/decisoes-cliente/{token}/aprovar`: endpoint pÃºblico para aprovaÃ§Ã£o externa do orÃ§amento por token.
-- `POST /api/orcamentos/decisoes-cliente/{token}/recusar`: endpoint pÃºblico para recusa externa do orÃ§amento por token.
-- O token Ã© gerado de forma opaca e nÃ£o previsÃ­vel; somente seu hash Ã© persistido na base de dados.
-- A solicitaÃ§Ã£o possui expiraÃ§Ã£o padrÃ£o de 48 horas e sÃ³ pode ser utilizada uma vez.
-- A aprovaÃ§Ã£o externa reaproveita a mesma regra de negÃ³cio da aprovaÃ§Ã£o interna, avanÃ§ando a OS para `EM_EXECUCAO`.
-- A recusa externa reaproveita a mesma regra de negÃ³cio da rejeiÃ§Ã£o interna, cancelando a OS conforme o fluxo jÃ¡ existente.
-- O envio de e-mail usa `EmailNotificacaoPort`, com modo `LOG` para execuÃ§Ã£o local e modo `SMTP` para envio real quando configurado.
-
-Essa funcionalidade estÃ¡ documentada tambÃ©m na [ADR-010](./docs/ADRS/ADR-010-decisao-externa-orcamento-token.md), na especificaÃ§Ã£o de requisitos e nos diagramas C4.
-
-Para testar no Postman, importe a collection [`OficinaMecanicaDGCar â€” Suite Completa`](./postman/OficinaMecanicaDGCar%20%E2%80%94%20Suite%20Completa.postman_collection.json) e execute o grupo `04 â€” Oficina Mecanica DGCAR > 06 - Ordem de ServiÃ§o (Fluxo Completo)` na ordem. ApÃ³s `06.6 - Gerar OrÃ§amento`, execute `06.6a - Notificar Cliente sobre OrÃ§amento`; esse request cria a solicitaÃ§Ã£o externa, valida os links retornados e grava automaticamente a variÃ¡vel `orcamentoDecisaoToken`. Em seguida, execute `06.7 - Aprovar OrÃ§amento por Token (cliente aceita)`, que usa essa variÃ¡vel para chamar o endpoint pÃºblico de aprovaÃ§Ã£o sem JWT.
-
-O cenÃ¡rio de recusa pode ser validado no grupo `04 â€” Oficina Mecanica DGCAR > 08 - Fluxo Alternativo (RejeiÃ§Ã£o)`. Execute `08.1 - Criar OS para rejeiÃ§Ã£o`, `08.2 - Gerar OrÃ§amento`, `08.2a - Notificar Cliente sobre OrÃ§amento (rejeiÃ§Ã£o)` e, por fim, `08.3 - Recusar OrÃ§amento por Token (cliente nÃ£o aceita)`. A notificaÃ§Ã£o grava a variÃ¡vel `orcamentoRecusaToken`, usada automaticamente no endpoint pÃºblico de recusa.
+Os retornos informam a situação atual da OS dentro do fluxo de atendimento, incluindo os estados principais do requisito: `RECEBIDA`, `EM_DIAGNOSTICO`, `AGUARDANDO_APROVACAO`, `EM_EXECUCAO`, `FINALIZADA` e `ENTREGUE`. O fluxo também contempla estados intermediários ou excepcionais usados pela regra de negócio, como `AGUARDANDO_RETIRADA` e `CANCELADA`.
 
 
 
-### Listagem de ordens de serviÃ§o (â–  OrdenaÃ§Ã£o por status: â–  Em ExecuÃ§Ã£o > Aguardando AprovaÃ§Ã£o > DiagnÃ³stico > Recebida. â–  Mais antigas primeiro. â–  Excluir (lÃ³gica nÃ£o fÃ­sica) da listagem as OS finalizadas e entregues.)
+### Aprovação de orçamento: endpoint para receber notificações externas de aprovação ou recusa do orçamento do cliente.
 
-O endpoint `GET /api/ordens-servico/fila` representa a fila operacional da oficina. Ele retorna apenas OS em `EM_EXECUCAO`, `AGUARDANDO_APROVACAO`, `EM_DIAGNOSTICO` ou `RECEBIDA`, nessa ordem de prioridade, e ordena OS do mesmo status por `dataCriacao` ascendente. OS em `FINALIZADA`, `AGUARDANDO_RETIRADA`, `ENTREGUE` ou `CANCELADA` nÃ£o aparecem nessa fila.
+Foi adicionada uma evolução no fluxo de orçamento para permitir que o cliente aprove ou recuse o orçamento por meio de uma notificação externa. O fluxo interno autenticado foi preservado para uso operacional da oficina, enquanto o novo fluxo externo utiliza token opaco, expiração e uso único para permitir a decisão sem exigir login/JWT do cliente.
+
+Principais pontos da implementação:
+
+- `POST /api/ordens-servico/{id}/orcamento/notificar-cliente`: endpoint interno, protegido para `ATENDENTE` e `GESTOR`, responsável por gerar a solicitação de decisão e enviar a notificação ao e-mail cadastrado.
+- `POST /api/orcamentos/decisoes-cliente/{token}/aprovar`: endpoint público para aprovação externa do orçamento por token.
+- `POST /api/orcamentos/decisoes-cliente/{token}/recusar`: endpoint público para recusa externa do orçamento por token.
+- O token é gerado de forma opaca e não previsível; somente seu hash é persistido na base de dados.
+- A solicitação possui expiração padrão de 48 horas e só pode ser utilizada uma vez.
+- A aprovação externa reaproveita a mesma regra de negócio da aprovação interna, avançando a OS para `EM_EXECUCAO`.
+- A recusa externa reaproveita a mesma regra de negócio da rejeição interna, cancelando a OS conforme o fluxo já existente.
+- O envio de e-mail usa `EmailNotificacaoPort`, com modo `LOG` para execução local e modo `SMTP` para envio real quando configurado.
+
+Essa funcionalidade está documentada também na [ADR-010](./docs/ADRS/ADR-010-decisao-externa-orcamento-token.md), na especificação de requisitos e nos diagramas C4.
 
 
 
-### AtualizaÃ§Ã£o de status da OS via alguma ferramenta como e-mail.
+### Listagem de ordens de serviço 
+#### -> Ordenação por status:  Em Execução > Aguardando Aprovação > Diagnóstico > Recebida; <br>-> Mais antigas primeiro;<br> -> Excluir (lógica não física) da listagem as OS finalizadas e entregues.)
 
-A atualizaÃ§Ã£o de status da OS ocorre pelas transiÃ§Ãµes oficiais da mÃ¡quina de estados da aplicaÃ§Ã£o. Como complemento informativo, o sistema envia uma notificaÃ§Ã£o por e-mail ao cliente cadastrado sempre que a OS avanÃ§a para um novo estado operacional relevante: `RECEBIDA`, `EM_DIAGNOSTICO`, `AGUARDANDO_APROVACAO`, `EM_EXECUCAO`, `FINALIZADA`, `AGUARDANDO_RETIRADA`, `ENTREGUE` ou `CANCELADA`.
+O endpoint `GET /api/ordens-servico/fila` representa a fila operacional da oficina. Ele retorna apenas OS em `EM_EXECUCAO`, `AGUARDANDO_APROVACAO`, `EM_DIAGNOSTICO` ou `RECEBIDA`, nessa ordem de prioridade, e ordena OS do mesmo status por `dataCriacao` ascendente. OS em `FINALIZADA`, `AGUARDANDO_RETIRADA`, `ENTREGUE` ou `CANCELADA` não aparecem nessa fila.
 
-A notificaÃ§Ã£o nÃ£o altera o fluxo de negÃ³cio, nÃ£o cria novo endpoint pÃºblico e nÃ£o substitui a consulta de status por API. Ela apenas informa o cliente sobre a situaÃ§Ã£o atual da OS e inclui o link pÃºblico de acompanhamento por nÃºmero da OS: `GET /api/ordens-servico/numero/{numero}/status`.
 
-Por padrÃ£o, o envio fica em modo `LOG`, permitindo testes locais sem SMTP real. Para envio real, configure o modo `SMTP` por variÃ¡veis de ambiente:
+### Atualização de status da OS via alguma ferramenta como e-mail.
+
+A atualização de status da OS ocorre pelas transições oficiais da máquina de estados da aplicação. Como complemento informativo, o sistema envia uma notificação por e-mail ao cliente cadastrado sempre que a OS avança para um novo estado operacional relevante: `RECEBIDA`, `EM_DIAGNOSTICO`, `AGUARDANDO_APROVACAO`, `EM_EXECUCAO`, `FINALIZADA`, `AGUARDANDO_RETIRADA`, `ENTREGUE` ou `CANCELADA`.
+
+A notificação não altera o fluxo de negócio, não cria novo endpoint público e não substitui a consulta de status por API. Ela apenas informa o cliente sobre a situação atual da OS e inclui o link público de acompanhamento por número da OS: `GET /api/ordens-servico/numero/{numero}/status`.
+
+Por padrão, o envio fica em modo `LOG`, permitindo testes locais sem SMTP real. Para envio real, configure o modo `SMTP` por variáveis de ambiente:
 
 ```bash
 OFICINA_EMAIL_ENABLED=true
@@ -139,28 +149,35 @@ SMTP_AUTH=true
 SMTP_STARTTLS_ENABLE=true
 ```
 
-Caso `OFICINA_EMAIL_ENABLED=false`, as notificaÃ§Ãµes sÃ£o ignoradas de forma controlada, sem bloquear as transiÃ§Ãµes da OS. Falhas de envio tambÃ©m nÃ£o impedem a evoluÃ§Ã£o do status; elas sÃ£o registradas em log para anÃ¡lise operacional.
+Caso `OFICINA_EMAIL_ENABLED=false`, as notificações são ignoradas de forma controlada, sem bloquear as transições da OS. Falhas de envio também não impedem a evolução do status; elas são registradas em log para análise operacional.
 
-Para validar esse fluxo no Postman, use a pasta `05 - Notificacao por E-mail ao Cliente (E2E SMTP)` da collection. Antes de executar, altere a variÃ¡vel de collection `emailClienteNotificacao` para o e-mail que deve receber as mensagens no provedor SMTP/Mailtrap. A pasta cria dados prÃ³prios, abre uma OS completa com esse e-mail e percorre o fluxo atÃ© `ENTREGUE`, gerando notificaÃ§Ãµes de status e tambÃ©m a notificaÃ§Ã£o de orÃ§amento por token.
 
-Para garantir que o fluxo chegue atÃ© os e-mails de `AGUARDANDO_RETIRADA` e `ENTREGUE`, configure o gateway mock com aprovaÃ§Ã£o determinÃ­stica no Docker Compose:
+Para testar as funcionalidades descritas acima no Postman, importe a collection [`OficinaMecanicaDGCar — Suite Completa`](./postman/OficinaMecanicaDGCar%20%E2%80%94%20Suite%20Completa.postman_collection.json). 
+
+```text
+TechChallengeFase2
+└── Fluxo Completo + Notificação por E-mail + Aprovação + Consulta de Status + Fila de OSs
+```
+
+Não execute isoladamente os requests de notificação, aprovação ou recusa de orçamento, pois eles dependem de login, IDs de cliente/veículo/OS, orçamento ativo e tokens gravados por etapas anteriores.
+
+Antes de executar, altere a variável de collection `emailClienteNotificacao` para o e-mail que deve receber as mensagens no provedor SMTP/Mailtrap. A pasta cria dados próprios, abre uma OS completa com esse e-mail e percorre o fluxo até `ENTREGUE`, gerando notificações de status e também a notificação de orçamento por token. O request `14 - Listar fila operacional de OS` complementa a validação ao confirmar que a OS entregue não retorna na fila operacional.
+
+Para garantir que o fluxo chegue até os e-mails de `AGUARDANDO_RETIRADA` e `ENTREGUE`, configure o gateway mock com aprovação determinística no Docker Compose:
 
 ```bash
 PAGAMENTO_GATEWAY_APPROVAL_RATE=1.0
 ```
 
-Essa decisÃ£o estÃ¡ registrada na [ADR-011](./docs/ADRS/ADR-011-notificacao-status-os-email.md).
+Essa decisão está registrada na [ADR-011](./docs/ADRS/ADR-011-notificacao-status-os-email.md).
 
 
-
-## ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
+<br>
 
 
 ## Infraestrutura
 
-Esta fase prepara a aplicaÃ§Ã£o para execuÃ§Ã£o em Kubernetes e AWS com uma arquitetura simples, versionÃ¡vel e econÃ´mica para o contexto do projeto.
+Esta fase prepara a aplicação para execução em Kubernetes e AWS com uma arquitetura simples, versionável e econômica para o contexto do projeto.
 
 ### Arquitetura AWS Proposta
 
@@ -185,25 +202,25 @@ Recursos provisionados em [`infra`](./infra):
 | Recurso | Finalidade |
 |---|---|
 | VPC | Rede isolada do projeto. |
-| Subnets pÃºblicas | Executam os nodes do EKS e o Load Balancer da API. |
-| Subnets privadas | Hospedam o RDS PostgreSQL sem IP pÃºblico. |
-| Internet Gateway | Permite trÃ¡fego pÃºblico para subnets pÃºblicas. |
+| Subnets públicas | Executam os nodes do EKS e o Load Balancer da API. |
+| Subnets privadas | Hospedam o RDS PostgreSQL sem IP público. |
+| Internet Gateway | Permite tráfego público para subnets públicas. |
 | Security Groups | Restringem acesso entre EKS, Load Balancer e RDS. |
 | Amazon ECR | Armazena a imagem Docker da API. |
 | Amazon EKS | Cluster Kubernetes gerenciado. |
 | Managed Node Group | Grupo de nodes EC2 para executar os pods. |
-| Amazon RDS PostgreSQL | Banco gerenciado da aplicaÃ§Ã£o. |
-| IAM Roles | PermissÃµes necessÃ¡rias para EKS e nodes. |
+| Amazon RDS PostgreSQL | Banco gerenciado da aplicação. |
+| IAM Roles | Permissões necessárias para EKS e nodes. |
 
-Para reduzir custo, a arquitetura nÃ£o usa NAT Gateway. Os nodes do EKS ficam em subnets pÃºblicas, enquanto o RDS fica em subnets privadas com `publicly_accessible=false`. O banco aceita conexÃ£o somente a partir do security group associado ao EKS:
+Para reduzir custo, a arquitetura não usa NAT Gateway. Os nodes do EKS ficam em subnets públicas, enquanto o RDS fica em subnets privadas com `publicly_accessible=false`. O banco aceita conexão somente a partir do security group associado ao EKS:
 
 ```text
 EKS cluster/node security group -> RDS security group -> TCP 5432
 ```
 
-Em produÃ§Ã£o real, a recomendaÃ§Ã£o seria usar nodes em subnets privadas, NAT Gateway ou VPC Endpoints, maior segregaÃ§Ã£o de ambientes, backups mais longos, Multi-AZ e polÃ­ticas IAM mais refinadas.
+Em produção real, a recomendação seria usar nodes em subnets privadas, NAT Gateway ou VPC Endpoints, maior segregação de ambientes, backups mais longos, Multi-AZ e políticas IAM mais refinadas.
 
-### Ordem Correta De CriaÃ§Ã£o
+### Ordem Correta De Criação
 
 1. Criar o backend remoto do Terraform em S3.
 2. Configurar a infra principal para usar o backend S3.
@@ -221,10 +238,10 @@ Para mantenedores com permissao administrativa no repositorio, a publicacao da i
 
 ### Passo A Passo Completo Para Subida Da Infra E Deploy Manual
 
-Este roteiro consolida a ordem operacional para criar a infraestrutura AWS, preparar o Kubernetes e fazer o deploy manual da API. Esse e o fluxo recomendado para avaliadores, pois nao depende de permissao para alterar GitHub Secrets.
+Este roteiro consolida a ordem operacional para criar a infraestrutura AWS, preparar o Kubernetes e fazer o deploy manual da API. Esse é o fluxo recomendado para quem não tem permissao para alterar GitHub Secrets.
 
-#### 0. Validar PrÃ©-Requisitos Locais 
-Execute os comandos no mesmo ambiente onde `aws`, `terraform`, `docker` e `kubectl` estÃ£o instalados. Windows/PowerShell, Git Bash e WSL possuem instalaÃ§Ãµes e `PATH` separados.
+#### 0. Validar Pré-Requisitos Locais 
+Execute os comandos no mesmo ambiente onde `aws`, `terraform`, `docker` e `kubectl` estão instalados. Windows/PowerShell, Git Bash e WSL possuem instalações e `PATH` separados.
 
 ```bash
 aws --version
@@ -234,7 +251,7 @@ docker --version
 aws sts get-caller-identity
 ```
 
-Se a identidade AWS nÃ£o estiver configurada:
+Se a identidade AWS não estiver configurada:
 
 ```bash
 aws configure
@@ -242,14 +259,14 @@ aws configure
 
 #### 1. Criar O Backend Remoto Do Terraform
 
-Este passo deve ser executado antes de qualquer `terraform init` na pasta `infra`. A infra principal usa um backend S3, entÃ£o o bucket S3 precisa existir primeiro.
+Este passo deve ser executado antes de qualquer `terraform init` na pasta `infra`. A infra principal usa um backend S3, então o bucket S3 precisa existir primeiro.
 
 ```bash
 cd infra/backend-bootstrap
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Edite `terraform.tfvars` e troque o bucket por um nome globalmente Ãºnico:
+Edite `terraform.tfvars` e troque o bucket por um nome globalmente único:
 
 ```hcl
 aws_region        = "us-east-1"
@@ -269,11 +286,11 @@ terraform output
 terraform output backend_config_example
 ```
 
-Esse passo cria o bucket S3 para o `terraform.tfstate` remoto. O lock do state serÃ¡ feito por arquivo `.tflock` no prÃ³prio S3 com `use_lockfile = true`.
+Esse passo cria o bucket S3 para o `terraform.tfstate` remoto. O lock do state será feito por arquivo `.tflock` no próprio S3 com `use_lockfile = true`.
 
 #### 2. Configurar Backend S3 Na Infra Principal
 
-Siga para este passo somente depois que o passo anterior terminar com sucesso. Se `terraform init` for executado em `infra` antes da criaÃ§Ã£o do bucket, o Terraform retornarÃ¡ erro informando que o bucket S3 do backend nÃ£o existe.
+Siga para este passo somente depois que o passo anterior terminar com sucesso. Se `terraform init` for executado em `infra` antes da criação do bucket, o Terraform retornará erro informando que o bucket S3 do backend não existe.
 
 ```bash
 cd ..
@@ -301,7 +318,7 @@ Inicialize a infra principal:
 terraform init
 ```
 
-#### 3. Configurar VariÃ¡veis Da Infra Principal
+#### 3. Configurar Variáveis Da Infra Principal
 
 ```bash
 cp terraform.tfvars.example terraform.tfvars
@@ -385,7 +402,7 @@ Atualize `k8s/configmap.yaml`:
 SPRING_DATASOURCE_URL: "jdbc:postgresql://endpoint-rds-real:5432/oficina"
 ```
 
-Neste momento ainda nÃ£o existe URL pÃºblica do Load Balancer. Ela sÃ³ serÃ¡ criada depois que os manifestos Kubernetes forem aplicados. Por enquanto, mantenha `OFICINA_PUBLIC_BASE_URL` com um valor temporÃ¡rio:
+Neste momento ainda não existe URL pública do Load Balancer. Ela só será criada depois que os manifestos Kubernetes forem aplicados. Por enquanto, mantenha `OFICINA_PUBLIC_BASE_URL` com um valor temporário:
 
 ```yaml
 OFICINA_PUBLIC_BASE_URL: "http://localhost:8080"
@@ -393,7 +410,7 @@ OFICINA_PUBLIC_BASE_URL: "http://localhost:8080"
 
 #### 7. Criar Secret No Kubernetes
 
-Este passo e obrigatorio para deploy manual pelo terminal, antes de aplicar os manifestos Kubernetes.
+Este passo é obrigatorio para deploy manual pelo terminal, antes de aplicar os manifestos Kubernetes.
 
 Se o deploy for feito pela pipeline do GitHub Actions, este passo manual pode ser pulado. A pipeline cria ou atualiza o Secret `oficina-api-secret` usando os valores configurados em GitHub Secrets por um mantenedor do repositorio.
 
@@ -529,7 +546,7 @@ kubectl rollout status deployment/oficina-api -n oficina
 
 #### 11. Liberar Usuario IAM Da Pipeline No EKS (Opcional Para Mantenedores)
 
-Este passo nao e necessario para o deploy manual. Execute somente se o deploy tambem sera feito pela pipeline do GitHub Actions.
+Este passo nao e necessario para o deploy manual. Execute somente se o deploy tambem será feito pela pipeline do GitHub Actions.
 
 Para o GitHub Actions fazer deploy, ele precisa de dois niveis de permissao:
 
@@ -546,9 +563,9 @@ github-actions-oficina-dgcar
 
 Nao use access key do usuario root. Depois gere uma access key para esse usuario em `IAM > Users > github-actions-oficina-dgcar > Security credentials > Create access key`. Os valores gerados serao cadastrados nos GitHub Secrets `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` no passo 12.
 
-##### 11.2 Automatizar Permissoes Com Terraform
+##### 11.2 Automatizar Permissões Com Terraform
 
-O Terraform da pasta `infra` pode automatizar as permissoes da pipeline para um usuario IAM ja existente. Para habilitar, configure no `infra/terraform.tfvars`:
+O Terraform da pasta `infra` pode automatizar as permissões da pipeline para um usuario IAM ja existente. Para habilitar, configure no `infra/terraform.tfvars`:
 
 ```hcl
 enable_github_actions_eks_access = true
@@ -563,14 +580,14 @@ terraform plan
 terraform apply
 ```
 
-Com essa opcao habilitada, o Terraform:
+Com essa opção habilitada, o Terraform:
 
 - anexa `AmazonEC2ContainerRegistryPowerUser` ao usuario IAM da pipeline;
 - cria uma policy inline permitindo `eks:DescribeCluster` no cluster criado;
 - cria a `aws_eks_access_entry` para o usuario IAM no EKS;
 - associa `AmazonEKSClusterAdminPolicy` ao usuario no escopo do cluster.
 
-Para conferir o ARN esperado do usuario da pipeline:
+Para conferir o ARN esperado do usuário da pipeline:
 
 ```bash
 terraform output github_actions_iam_user_arn
@@ -578,7 +595,7 @@ terraform output github_actions_iam_user_arn
 
 ##### 11.3 Alternativa Manual Pelo Console AWS
 
-Se nao quiser automatizar pelo Terraform, faca todos os passos abaixo no Console AWS.
+Se não quiser automatizar pelo Terraform, faça todos os passos abaixo no Console AWS.
 
 **A. Anexar permissao de ECR ao usuario IAM**
 
@@ -634,9 +651,76 @@ terraform output -raw eks_cluster_name
 
 O `eks:DescribeCluster` e necessario porque a pipeline executa `aws eks update-kubeconfig`. A access entry e necessaria porque, depois de autenticar na AWS, a pipeline tambem precisa de permissao Kubernetes dentro do cluster.
 
+##### 11.4 Alternativa Manual Pela AWS CLI
+
+Se preferir liberar o usuário da pipeline por linha de comando, execute os comandos abaixo com uma identidade AWS que ja tenha permissão administrativa no EKS:
+
+```bash
+AWS_REGION="us-east-1"
+CLUSTER_NAME="oficina-dgcar-16soat-development-eks"
+GITHUB_USER_ARN="arn:aws:iam::857145323352:user/github-actions-oficina-dgcar"
+```
+
+Se o cluster ainda estiver usando o modo antigo de autenticação, habilite o suporte a access entries. Use `API_AND_CONFIG_MAP` para manter compatibilidade com o `aws-auth` existente e permitir o uso da API de access entries:
+
+```bash
+aws eks update-cluster-config \
+  --region "$AWS_REGION" \
+  --name "$CLUSTER_NAME" \
+  --access-config authenticationMode=API_AND_CONFIG_MAP
+```
+
+Aguarde o cluster voltar ao estado ativo:
+
+```bash
+aws eks wait cluster-active \
+  --region "$AWS_REGION" \
+  --name "$CLUSTER_NAME"
+```
+
+Verifique se a access entry ja existe:
+
+```bash
+aws eks list-access-entries \
+  --region "$AWS_REGION" \
+  --cluster-name "$CLUSTER_NAME"
+```
+
+Crie a access entry para o usuario IAM da pipeline:
+
+```bash
+aws eks create-access-entry \
+  --region "$AWS_REGION" \
+  --cluster-name "$CLUSTER_NAME" \
+  --principal-arn "$GITHUB_USER_ARN" \
+  --type STANDARD
+```
+
+Associe a policy de acesso ao cluster:
+
+```bash
+aws eks associate-access-policy \
+  --region "$AWS_REGION" \
+  --cluster-name "$CLUSTER_NAME" \
+  --principal-arn "$GITHUB_USER_ARN" \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+  --access-scope type=cluster
+```
+
+Confira a policy associada:
+
+```bash
+aws eks list-associated-access-policies \
+  --region "$AWS_REGION" \
+  --cluster-name "$CLUSTER_NAME" \
+  --principal-arn "$GITHUB_USER_ARN"
+```
+
+
+
 #### 12. Configurar GitHub Secrets (Opcional Para Mantenedores)
 
-Este passo nao e necessario para o deploy manual do avaliador. Ele e necessario apenas para quem tem permissao administrativa no repositorio e vai executar o deploy pela pipeline do GitHub Actions.
+Este passo nao e necessário para o deploy manual. Ele e necessário apenas para quem tem permissão administrativa no repositorio e vai executar o deploy pela pipeline do GitHub Actions.
 
 Configure no repositorio GitHub:
 
@@ -682,7 +766,7 @@ openssl rand -base64 48
 
 #### 13. Commitar E Disparar A Esteira CI/CD (Opcional Para Mantenedores)
 
-Este passo nao e necessario para o deploy manual. Use apenas quando os GitHub Secrets ja estiverem configurados e o usuario/role da pipeline ja tiver acesso ao EKS.
+Este passo não é necessário para o deploy manual. Use apenas quando os GitHub Secrets ja estiverem configurados e o usuario/role da pipeline ja tiver acesso ao EKS.
 
 ```bash
 git status
@@ -715,7 +799,7 @@ A imagem publicada terá o formato:
 
 ```bash
 aws ecr describe-repositories --region us-east-1
-aws ecr list-images --region us-east-1 --repository-name oficina-dgcar/oficina-api
+aws ecr list-images --region us-east-1 --repository-name oficina-dgcar-16soat/oficina-api
 kubectl get pods -n oficina
 kubectl get svc oficina-api -n oficina
 kubectl get hpa -n oficina
@@ -723,7 +807,8 @@ kubectl rollout status deployment/oficina-api -n oficina
 kubectl logs -n oficina deployment/oficina-api
 ```
 
-Teste controlado do HPA para demonstrar escalabilidade com baixo custo:
+
+#### Teste controlado do HPA para demonstrar escalabilidade:
 
 Instale o Metrics Server, necessario para `kubectl top` e para o HPA calcular CPU/memoria:
 
@@ -733,385 +818,208 @@ kubectl rollout status deployment/metrics-server -n kube-system
 kubectl top nodes
 ```
 
+Confira o estado inicial do HPA:
+
 ```bash
 kubectl top pods -n oficina
-kubectl patch hpa oficina-api -n oficina --type merge -p '{"spec":{"maxReplicas":2}}'
-
-kubectl run hpa-load -n oficina --image=busybox:1.36 --restart=Never -- /bin/sh -c 'for i in $(seq 1 30); do while true; do wget -q -O- http://oficina-api/actuator/health >/dev/null; done & done; sleep 180'
-
-kubectl get hpa oficina-api -n oficina -w
-kubectl get pods -n oficina -w
+kubectl get hpa oficina-api -n oficina
 ```
 
-Ao final, remova o pod de carga e restaure o limite do HPA:
+Confirme que o HPA ficou com `MINPODS 2`, `MAXPODS 3` e `REPLICAS 2`:
+
+Para demonstrar o scale up, reduza temporariamente apenas o target de CPU para `5%`, mantendo memoria em `75%`. Isso faz o HPA tender a subir de 2 para 3 replicas quando houver carga controlada:
 
 ```bash
-kubectl delete pod hpa-load -n oficina
-kubectl patch hpa oficina-api -n oficina --type merge -p '{"spec":{"maxReplicas":3}}'
+kubectl patch hpa oficina-api -n oficina --type merge -p '{"spec":{"metrics":[{"type":"Resource","resource":{"name":"cpu","target":{"type":"Utilization","averageUtilization":5}}},{"type":"Resource","resource":{"name":"memory","target":{"type":"Utilization","averageUtilization":75}}}]}}'
 ```
+
+Gere carga contra o `Service` interno da API:
+
+```bash
+kubectl run hpa-load -n oficina --image=busybox:1.36 --restart=Never -- /bin/sh -c 'for i in $(seq 1 80); do while true; do wget -q -O- http://oficina-api/actuator/health >/dev/null; done & done; sleep 300'
+```
+
+No Git Bash do Windows, evite a conversao automatica de `/bin/sh` usando `MSYS_NO_PATHCONV=1`:
+
+```bash
+MSYS_NO_PATHCONV=1 kubectl run hpa-load -n oficina --image=busybox:1.36 --restart=Never -- /bin/sh -c 'for i in $(seq 1 80); do while true; do wget -q -O- http://oficina-api/actuator/health >/dev/null; done & done; sleep 300'
+```
+
+Acompanhe o autoscale. Pode levar alguns minutos ate o HPA recalcular as metricas. O objetivo da demonstracao e ver `REPLICAS` subir de `2` para `3`:
+
+```bash
+kubectl get hpa oficina-api -n oficina -w
+```
+
+Em outro terminal, acompanhe a criação do terceiro pod:
+
+```bash
+kubectl get pods -n oficina -w
+kubectl get deployment oficina-api -n oficina
+kubectl get hpa oficina-api -n oficina
+```
+
+Se não escalar depois de alguns minutos, remova o pod de carga e repita com mais concorrência:
+
+```bash
+kubectl delete pod hpa-load -n oficina --ignore-not-found
+
+MSYS_NO_PATHCONV=1 kubectl run hpa-load -n oficina --image=busybox:1.36 --restart=Never -- /bin/sh -c 'for i in $(seq 1 150); do while true; do wget -q -O- http://oficina-api/actuator/health >/dev/null; done & done; sleep 300'
+```
+
+Ao final, remova o pod de carga e restaure os targets normais do HPA:
+
+```bash
+kubectl delete pod hpa-load -n oficina --ignore-not-found
+kubectl patch hpa oficina-api -n oficina --type merge -p '{"spec":{"minReplicas":2,"maxReplicas":3,"metrics":[{"type":"Resource","resource":{"name":"cpu","target":{"type":"Utilization","averageUtilization":70}}},{"type":"Resource","resource":{"name":"memory","target":{"type":"Utilization","averageUtilization":75}}}]}}'
+```
+
+Depois de alguns minutos sem carga, o HPA deve estabilizar novamente em `REPLICAS 2`. O scale down respeita a janela de estabilização configurada no HPA.
 
 #### 15. Encerrar Ambiente Após A Utilização
 
-Remova primeiro os recursos Kubernetes que podem manter Load Balancer ativo:
+Siga esta ordem. O bucket S3 do backend remoto guarda o state da infraestrutura principal, então ele deve ser distruído somente no final. Se o bucket for apagado antes do `terraform destroy` da pasta `infra`, o Terraform perde o mapa dos recursos e VPC/EKS/RDS podem ficar órfãos na AWS.
+
+##### 15.1 Remover Recursos Kubernetes
+
+Remova primeiro os recursos Kubernetes que podem manter Load Balancer e ENIs ativos na VPC:
 
 ```bash
+aws eks update-kubeconfig --region us-east-1 --name oficina-dgcar-16soat-development-eks
+
 kubectl delete service oficina-api -n oficina
 kubectl delete namespace oficina
 ```
 
-Depois destrua a infra principal:
+Se o namespace demorar para sumir, acompanhe:
+
+```bash
+kubectl get namespace oficina
+kubectl get svc -A
+```
+
+##### 15.2 Destruir A Infra Principal
+
+Com o backend S3 ainda existente, destrua a infraestrutura principal usando o estado remoto do Terraform:
 
 ```bash
 cd infra
-terraform destroy
+terraform init -reconfigure
+terraform state list
+terraform destroy -auto-approve
 ```
 
-Se não precisar mais manter o backend remoto:
+Esse passo deve remover a VPC, subnets, internet gateway, security groups, EKS, node group, RDS e ECR criados pelo Terraform.
+
+Se a operação ficar travada por um lock do backend S3, libere o lock manualmente com o ID exibido pelo erro e repita o comando:
+
+```bash
+terraform force-unlock <lock-id>
+```
+
+> Use `force-unlock` somente quando você tiver certeza de que ninguém está usando o mesmo state remoto no momento.
+
+##### 15.3 Validar Se A VPC Foi Removida
+
+Depois do `destroy` da infra principal, confirme que a VPC do projeto não aparece mais:
+
+```bash
+aws ec2 describe-vpcs \
+  --region us-east-1 \
+  --filters "Name=tag:Name,Values=oficina-dgcar-16soat-development-vpc" \
+  --query "Vpcs[].{VpcId:VpcId,CidrBlock:CidrBlock,Name:Tags[?Key=='Name'].Value|[0]}"
+```
+
+Resultado esperado após remoção bem-sucedida:
+
+```json
+[]
+```
+
+Se a VPC ainda estiver presente, isso normalmente significa que algum recurso dependente ainda está bloqueando a exclusão. Em cenários de EKS, o bloqueio mais comum vem do node group ou do cluster ainda ativo. Nesse caso, remova em ordem:
+
+```bash
+aws eks delete-nodegroup \
+  --region us-east-1 \
+  --cluster-name oficina-dgcar-16soat-development-eks \
+  --nodegroup-name oficina-dgcar-16soat-development-nodes
+
+aws eks wait nodegroup-deleted \
+  --region us-east-1 \
+  --cluster-name oficina-dgcar-16soat-development-eks \
+  --nodegroup-name oficina-dgcar-16soat-development-nodes
+```
+
+Depois, se o cluster ainda existir:
+
+```bash
+aws eks delete-cluster \
+  --region us-east-1 \
+  --name oficina-dgcar-16soat-development-eks
+
+aws eks wait cluster-deleted \
+  --region us-east-1 \
+  --name oficina-dgcar-16soat-development-eks
+```
+
+Se a exclusão da VPC continuar bloqueada por `network interfaces`, verifique no Console AWS os recursos associados às ENIs, como Load Balancer, EKS ou RDS, e remova esses recursos antes de tentar excluir novamente a VPC.
+
+##### 15.4 Destruir O Backend Remoto
+
+Somente depois da infra principal ter sido destruída, remova o backend remoto:
 
 ```bash
 cd backend-bootstrap
-terraform destroy
+terraform init -reconfigure
+terraform destroy -auto-approve
 ```
 
-Antes de destruir o backend remoto, confirme que não há state necessário no bucket S3.
-
-### 1. Backend Remoto Do Terraform
-
-O backend remoto é criado primeiro porque o bucket S3 precisa existir antes de ser usado para armazenar o `terraform.tfstate`.
-
-Arquivos em [`infra/backend-bootstrap`](./infra/backend-bootstrap):
-
-| Arquivo | Finalidade |
-|---|---|
-| `main.tf` | Cria bucket S3 para o state remoto. |
-| `variables.tf` | Define regiÃ£o, projeto, ambiente e nome do bucket. |
-| `outputs.tf` | Exibe os valores usados no backend da infra principal. |
-| `terraform.tfvars.example` | Modelo local de variÃ¡veis do bootstrap. |
-
-Recursos criados:
-
-- bucket S3 privado para o state;
-- versionamento no bucket;
-- criptografia SSE-S3;
-- bloqueio de acesso público;
-- lock nativo do state por arquivo `.tflock` no S3.
-
-Os comandos de criação do backend remoto estão consolidados no passo a passo completo desta seção.
-
-O bootstrap terá um state local apenas para gerenciar o bucket do backend. Não versionar `terraform.tfvars` nem arquivos `terraform.tfstate`.
-
-### 2. Configurar Backend S3 Na Infra Principal
-
-Depois do bootstrap, a infra principal deve ser configurada para usar o bucket S3 criado anteriormente.
-
-O arquivo real `backend.tf` não deve ser versionado, pois referencia recursos específicos da conta AWS. O repositório mantém apenas [`infra/backend.tf.example`](./infra/backend.tf.example).
-
-Os comandos de inicialização e eventual migração de state estão descritos no passo a passo completo.
-
-### 3. Criar Infraestrutura AWS Principal
-
-Na pasta [`infra`](./infra), a infra principal usa variÃ¡veis locais baseadas em `terraform.tfvars.example`.
-
-Por padrÃ£o, `eks_cluster_version = null`, deixando a AWS escolher uma versÃ£o suportada do EKS no momento da criaÃ§Ã£o. Para travar uma versÃ£o especÃ­fica, informe o valor explicitamente.
-
-Os comandos para criar a infra e configurar o acesso ao cluster estÃ£o no passo a passo completo.
-
-Outputs importantes:
-
-| Output | Uso |
-|---|---|
-| `ecr_repository_url` | Usado no build/push da imagem Docker e no Kustomize. |
-| `eks_cluster_name` | Usado no `aws eks update-kubeconfig` e CI/CD. |
-| `rds_endpoint` | Endpoint DNS do PostgreSQL. |
-| `spring_datasource_url` | Valor para `SPRING_DATASOURCE_URL` no Kubernetes. |
-
-### 4. EstratÃ©gia De Banco De Dados
-
-O banco de dados Ã© tratado como infraestrutura gerenciada e versionada pela aplicaÃ§Ã£o:
-
-1. O Terraform cria o Amazon RDS PostgreSQL em subnets privadas, sem exposiÃ§Ã£o pÃºblica.
-2. O output `spring_datasource_url` gera a JDBC URL do banco.
-3. O Kubernetes injeta `SPRING_DATASOURCE_URL` via `ConfigMap`.
-4. O Kubernetes injeta `SPRING_DATASOURCE_USERNAME` e `SPRING_DATASOURCE_PASSWORD` via `Secret`.
-5. O pod da aplicaÃ§Ã£o Spring Boot inicia no EKS.
-6. O Flyway executa automaticamente as migrations versionadas em `src/main/resources/db/migration`.
-7. ApÃ³s as migrations, o Hibernate/JPA valida o schema com `ddl-auto=validate`.
-
-Fluxo visual:
-
-```text
-Terraform
-   |
-   | cria RDS PostgreSQL
-   v
-Outputs Terraform
-   |
-   | spring_datasource_url
-   v
-Kubernetes ConfigMap + Secret
-   |
-   | variÃ¡veis de conexÃ£o
-   v
-Spring Boot
-   |
-   | startup
-   v
-Flyway migrations
-   |
-   | V1, V2, V3...
-   v
-JPA/Hibernate validate
-```
-
-As alteraÃ§Ãµes estruturais do banco devem ser feitas somente por novas migrations Flyway:
-
-```text
-src/main/resources/db/migration/V17__descricao_da_mudanca.sql
-```
-
-NÃ£o criar tabelas, colunas ou seeds diretamente no RDS por SQL manual fora do Flyway, salvo necessidade explÃ­cita e documentada. Essa regra mantÃ©m o banco reproduzÃ­vel em ambiente local, Kubernetes e AWS.
-
-### 5. PreparaÃ§Ã£o Da AplicaÃ§Ã£o Para Kubernetes
-
-A aplicaÃ§Ã£o recebe configuraÃ§Ãµes por variÃ¡veis de ambiente. No Kubernetes, valores nÃ£o sensÃ­veis ficam em `ConfigMap`; valores sensÃ­veis ficam em `Secret`.
-
-VariÃ¡veis principais:
+Se o `destroy` do bucket do backend falhar com `BucketNotEmpty`, isso significa que o bucket tem versionamento ativado e ainda guarda versões antigas do `terraform.tfstate` e/ou `delete markers` do S3. Nesse caso, remova manualmente todas as versões antes de repetir o `destroy`:
 
 ```bash
-SPRING_DATASOURCE_URL=jdbc:postgresql://endpoint-rds:5432/oficina
-SPRING_DATASOURCE_USERNAME=usuario
-SPRING_DATASOURCE_PASSWORD=senha
-JWT_SECRET=chave-forte-para-assinatura-jwt
-OFICINA_PUBLIC_BASE_URL=https://url-publica-da-api
-OFICINA_EMAIL_ENABLED=false
-OFICINA_EMAIL_MODE=LOG
+BUCKET="oficina-dgcar-fiap-tfstate-tsoat16"
+
+aws s3api delete-objects \
+  --bucket "$BUCKET" \
+  --delete "$(aws s3api list-object-versions \
+    --bucket "$BUCKET" \
+    --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}}' \
+    --output json)"
+
+aws s3api delete-objects \
+  --bucket "$BUCKET" \
+  --delete "$(aws s3api list-object-versions \
+    --bucket "$BUCKET" \
+    --query '{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}' \
+    --output json)"
 ```
 
-O Flyway permanece habilitado no startup. Assim, as migrations em `src/main/resources/db/migration` sÃ£o aplicadas automaticamente no RDS antes da validaÃ§Ã£o do schema pelo Hibernate com `ddl-auto=validate`.
-
-O projeto usa Spring Boot Actuator para probes:
-
-```text
-/actuator/health
-/actuator/health/liveness
-/actuator/health/readiness
-/actuator/info
-```
-
-Esses endpoints sÃ£o liberados no Spring Security para permitir validaÃ§Ã£o pelo Kubernetes sem JWT.
-
-Por padrÃ£o, `MANAGEMENT_HEALTH_MAIL_ENABLED=false` desabilita o health indicator de SMTP no Actuator. Isso evita que `/actuator/health` fique `DOWN` em ambiente local ou acadÃªmico sem servidor SMTP real, mantendo `/actuator/health/liveness` e `/actuator/health/readiness` como probes oficiais do Kubernetes. Para validar o provedor SMTP pelo health agregado, altere essa variÃ¡vel para `true` no ambiente desejado.
-
-### 6. Manifestos Kubernetes
-
-Os manifestos ficam em [`k8s`](./k8s):
-
-| Arquivo | Finalidade |
-|---|---|
-| `namespace.yaml` | Cria o namespace `oficina`. |
-| `configmap.yaml` | Define variÃ¡veis nÃ£o sensÃ­veis. |
-| `secret.example.yaml` | Modelo de `Secret` sem credenciais reais. NÃ£o Ã© aplicado pelo `kustomization.yaml`. |
-| `deployment.yaml` | Executa a API com rolling update, probes, resources e security context. |
-| `service.yaml` | ExpÃµe a API via `LoadBalancer`, porta `80` para `8080`. |
-| `hpa.yaml` | Escala de `1` a `3` pods por CPU e memÃ³ria. |
-| `kustomization.yaml` | Agrupa manifestos e permite parametrizar imagem/tag. |
-
-Resources do `Deployment`:
-
-```yaml
-resources:
-  requests:
-    cpu: 250m
-    memory: 512Mi
-  limits:
-    cpu: 500m
-    memory: 768Mi
-```
-
-Probes:
-
-```yaml
-livenessProbe:
-  httpGet:
-    path: /actuator/health/liveness
-    port: http
-
-readinessProbe:
-  httpGet:
-    path: /actuator/health/readiness
-    port: http
-```
-
-HPA:
-
-```text
-minReplicas: 1
-maxReplicas: 3
-CPU: 70%
-MemÃ³ria: 75%
-```
-
-Atualize `k8s/configmap.yaml` com o output `spring_datasource_url`, conforme indicado no passo a passo completo.
-
-No primeiro deploy, `OFICINA_PUBLIC_BASE_URL` pode ficar temporariamente como `http://localhost:8080`, pois o Load Balancer ainda nao existe. Depois que `kubectl get svc oficina-api -n oficina` mostrar o `EXTERNAL-IP`, atualize essa variÃ¡vel com a URL publica real para que notificaÃ§Ãµes e links externos sejam gerados corretamente.
-
-Atualize a imagem pelo Kustomize ou pela pipeline, conforme o fluxo escolhido para o deploy.
-
-### 7. Criar Secrets No Cluster
-
-NÃ£o coloque credenciais reais em arquivos versionados. Para uma execuÃ§Ã£o manual, crie o secret diretamente no cluster seguindo o passo a passo completo.
-
-Em CI/CD, esses valores devem vir de GitHub Secrets ou de um gerenciador de segredos.
-
-### 8. Aplicar E Validar Kubernetes
-
-Renderize, aplique e valide os manifestos seguindo os comandos do passo a passo completo.
-
-Teste de HPA com carga curta e controlada:
-
-Instale e valide o Metrics Server antes do teste. Os comandos do teste controlado de HPA estÃ£o no passo a passo completo.
-
-Ao final, remova o pod de carga e restaure o limite original do HPA.
-
-Depois que o hostname publico aparecer, atualize `OFICINA_PUBLIC_BASE_URL` em `k8s/configmap.yaml`, aplique novamente os manifestos e reinicie o deployment conforme o passo a passo completo.
-
-Em EKS, o `Service` do tipo `LoadBalancer` cria um Load Balancer AWS. Para controlar custos, mantenha apenas um serviÃ§o externo e destrua o ambiente quando nÃ£o estiver em uso.
-
-### 9. Pipeline CI/CD
-
-A esteira fica definida em [`.github/workflows/ci-cd.yml`](./.github/workflows/ci-cd.yml) e executa validaÃ§Ã£o, build, publicaÃ§Ã£o da imagem no Amazon ECR e deploy no Amazon EKS.
-
-Gatilhos:
-
-| Evento | Comportamento |
-|---|---|
-| `pull_request` para `main` | Executa testes e build Docker local, sem deploy. |
-| `push` na `main` | Executa testes, build Docker, push para ECR e deploy no EKS. |
-| `workflow_dispatch` | Permite execuÃ§Ã£o manual pelo GitHub Actions. |
-
-Jobs da pipeline:
-
-| Job | Etapas |
-|---|---|
-| `test` | Checkout, setup Java 17 com cache Maven, `mvn clean test` e upload de relatÃ³rios. |
-| `docker-build` | Executa somente em `pull_request`; faz build local da imagem Docker para validar o Dockerfile, sem push e sem deploy. |
-| `deploy` | Executa somente fora de `pull_request`; faz login AWS/ECR, build da imagem, push para ECR, update kubeconfig, criaÃ§Ã£o do Secret, `kubectl apply -k k8s`, atualizaÃ§Ã£o da imagem e `rollout status`. |
-
-Secrets necessÃ¡rios no GitHub:
-
-| Secret | Uso |
-|---|---|
-| `AWS_ACCESS_KEY_ID` | AutenticaÃ§Ã£o AWS da pipeline. |
-| `AWS_SECRET_ACCESS_KEY` | AutenticaÃ§Ã£o AWS da pipeline. |
-| `AWS_REGION` | RegiÃ£o AWS, neste projeto `us-east-1`. |
-| `EKS_CLUSTER_NAME` | Nome do cluster EKS, por exemplo `oficina-dgcar-academic-eks`. |
-| `ECR_REPOSITORY` | Nome do repositÃ³rio ECR, por exemplo `oficina-dgcar/oficina-api`. |
-| `SPRING_DATASOURCE_USERNAME` | UsuÃ¡rio do RDS PostgreSQL. |
-| `SPRING_DATASOURCE_PASSWORD` | Senha do RDS PostgreSQL. |
-| `JWT_SECRET` | Chave forte de assinatura JWT. |
-| `SMTP_USERNAME` | UsuÃ¡rio SMTP, vazio se e-mail real estiver desabilitado. |
-| `SMTP_PASSWORD` | Senha SMTP, vazio se e-mail real estiver desabilitado. |
-
-Fluxo em pull request:
-
-```text
-pull_request
-   |
-   v
-mvn clean test
-   |
-   v
-docker build local
-```
-
-Fluxo de deploy:
-
-```text
-push main
-   |
-   v
-mvn clean test
-   |
-   v
-docker build
-   |
-   v
-docker push -> Amazon ECR
-   |
-   v
-aws eks update-kubeconfig
-   |
-   v
-kubectl apply -k k8s
-   |
-   v
-kubectl set image deployment/oficina-api
-   |
-   v
-kubectl rollout status
-```
-
-A pipeline cria ou atualiza o `Secret` `oficina-api-secret` no namespace `oficina` com valores vindos dos GitHub Secrets. NÃ£o hÃ¡ credenciais reais versionadas no repositÃ³rio.
-
-Antes do primeiro deploy pela pipeline, confirme que:
-
-1. A infraestrutura Terraform foi criada.
-2. O output `ecr_repository_url` corresponde ao repositÃ³rio configurado em `ECR_REPOSITORY`.
-3. O output `spring_datasource_url` foi aplicado no `k8s/configmap.yaml`.
-4. O usuÃ¡rio AWS da pipeline tem permissÃ£o para ECR, EKS e leitura do cluster.
-
-### 10. SeguranÃ§a E Boas PrÃ¡ticas
-
-Controles aplicados ou documentados no projeto:
-
-| PrÃ¡tica | AplicaÃ§Ã£o no projeto |
-|---|---|
-| NÃ£o versionar segredos reais | `.env`, `terraform.tfvars`, `backend.tf`, state Terraform e `k8s/secret.local.yaml` estÃ£o no `.gitignore`. |
-| GitHub Secrets | A pipeline lÃª credenciais AWS, banco, JWT e SMTP por GitHub Secrets. |
-| Kubernetes Secrets | O Secret `oficina-api-secret` Ã© criado/atualizado pela pipeline ou por comando manual, sem credenciais versionadas. |
-| Secret de exemplo | `k8s/secret.example.yaml` Ã© apenas modelo e nÃ£o entra no `kustomization.yaml`, evitando sobrescrever secrets reais. |
-| Container nÃ£o-root | O Dockerfile cria `appuser` com UID/GID `10001`, e o Deployment usa `runAsNonRoot`. |
-| Hardening do pod | `allowPrivilegeEscalation=false`, capabilities removidas, `seccompProfile=RuntimeDefault` e token de service account desativado. |
-| Requests e limits | O Deployment define CPU/memÃ³ria para permitir agendamento previsÃ­vel e HPA. |
-| HPA | O HPA escala de `1` a `3` pods por CPU e memÃ³ria. |
-| Security groups restritivos | O RDS aceita PostgreSQL apenas a partir do security group associado ao EKS. |
-| Flyway para migrations | MudanÃ§as de schema devem ser feitas por arquivos versionados em `src/main/resources/db/migration`. |
-| Logs bÃ¡sicos | A aplicaÃ§Ã£o registra eventos no log padrÃ£o do container, acessÃ­veis por `docker compose logs` ou `kubectl logs`. |
-| Swagger acadÃªmico | Swagger/OpenAPI fica habilitado para demonstraÃ§Ã£o. Em produÃ§Ã£o real, restringir ou desabilitar. |
-| IAM com menor privilÃ©gio possÃ­vel | A infra usa roles separadas para EKS cluster e nodes. Para CI/CD, recomenda-se usuÃ¡rio/role dedicada com escopo mÃ­nimo para ECR, EKS e leitura do cluster. |
-
-RecomendaÃ§Ã£o para Swagger em ambiente produtivo:
+Depois de limpar os objetos versionados, execute novamente o destroy do bootstrap:
 
 ```bash
-SPRINGDOC_API_DOCS_ENABLED=false
-SPRINGDOC_SWAGGER_UI_ENABLED=false
+terraform destroy -auto-approve
 ```
 
-RecomendaÃ§Ã£o de permissÃµes para a identidade usada no GitHub Actions:
+> O erro `BucketNotEmpty` não é um problema do Terraform em si; ele aparece porque o bucket do state S3 foi configurado com versionamento, então a remoção do bucket só é permitida após a limpeza explícita das versões e markers.
 
-- push/pull no repositÃ³rio ECR da aplicaÃ§Ã£o;
-- `eks:DescribeCluster` para o cluster do projeto;
-- permissÃµes Kubernetes via `aws-auth`/access entries restritas ao namespace `oficina`;
-- evitar usuÃ¡rio administrador permanente para a pipeline.
 
-### 11. Destruir Ambiente E Evitar Custos
+Todas as decisões da Infra estrutura estão descritas na [ADR-Infra.md] [`docs/infraestrutura`](./docs/infraestrutura) |
+<br>
 
-Remova primeiro os recursos Kubernetes que podem manter Load Balancer ativo. Depois destrua a infraestrutura principal e, por Ãºltimo, o backend remoto caso ele nÃ£o seja mais necessÃ¡rio.
+<br>
 
-Antes de destruir o bucket de state, confirme que nÃ£o hÃ¡ state necessÃ¡rio armazenado nele.
+## ⚙️ Como rodar
 
-## âš™ï¸ Como rodar
-
-### PrÃ©-requisitos
+### Pré-requisitos
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado e rodando
 
 ### Com Docker (recomendado)
 
 ```bash
-# Crie o arquivo local de variÃ¡veis de ambiente
+# Crie o arquivo local de variáveis de ambiente
 cp .env.example .env
 
-# Sobe aplicaÃ§Ã£o + banco PostgreSQL
+# Sobe aplicação + banco PostgreSQL
 docker compose up --build -d
 
 # Acompanhar logs
@@ -1124,11 +1032,11 @@ docker compose down
 docker compose down -v
 ```
 
-> O arquivo `.env` Ã© local e nÃ£o deve ser versionado. Use `.env.example` apenas como modelo e nunca coloque credenciais reais diretamente no `docker-compose.yml`.
+> O arquivo `.env` é local e não deve ser versionado. Use `.env.example` apenas como modelo e nunca coloque credenciais reais diretamente no `docker-compose.yml`.
 
-### Teste local de notificaÃ§Ãµes por e-mail
+### Teste local de notificações por e-mail
 
-Para demonstrar a integraÃ§Ã£o com envio real de e-mails, configure um provedor SMTP de teste, como Mailtrap, no arquivo `.env` local:
+Para demonstrar a integração com envio real de e-mails, configure um provedor SMTP de teste, como Mailtrap, no arquivo `.env` local:
 
 ```bash
 OFICINA_EMAIL_ENABLED=true
@@ -1144,7 +1052,7 @@ PAGAMENTO_GATEWAY_APPROVAL_RATE=1.0
 PAGAMENTO_GATEWAY_LATENCY_MS=0
 ```
 
-Depois reinicie os containers para aplicar as variÃ¡veis:
+Depois reinicie os containers para aplicar as variáveis:
 
 ```bash
 docker compose down
@@ -1152,16 +1060,17 @@ docker compose up --build -d
 docker compose logs -f app
 ```
 
-No Postman, importe a collection completa em [`postman`](./postman) e execute a pasta `05 - Notificacao por E-mail ao Cliente (E2E SMTP)`. Antes de rodar a pasta, ajuste a variÃ¡vel de collection `emailClienteNotificacao` para o e-mail que deve aparecer no provedor SMTP/Mailtrap.
+No Postman, importe a collection completa em [`postman`](./postman) e execute a pasta `TechChallengeFase2 > Fluxo Completo + Notificação por E-mail + Aprovação + Consulta de Status + Fila de OSs`. Antes de rodar a pasta, ajuste a variável de collection `emailClienteNotificacao` para o e-mail que deve aparecer no provedor SMTP/Mailtrap.
 
-Fluxo sugerido para demonstraÃ§Ã£o:
+Fluxo sugerido para demonstração:
 
 1. Mostrar o arquivo `.env` local com as credenciais SMTP preenchidas, sem versionar o arquivo.
-2. Subir aplicaÃ§Ã£o e PostgreSQL com `docker compose up --build -d`.
+2. Subir aplicação e PostgreSQL com `docker compose up --build -d`.
 3. Acompanhar logs com `docker compose logs -f app`.
-4. Executar a pasta `05 - Notificacao por E-mail ao Cliente (E2E SMTP)` no Postman.
+4. Executar a pasta `TechChallengeFase2 > Fluxo Completo + Notificação por E-mail + Aprovação + Consulta de Status + Fila de OSs` no Postman.
 5. Mostrar os e-mails chegando no Mailtrap/provedor SMTP.
-6. Mostrar no Swagger ou Postman a consulta de status da OS apÃ³s as transiÃ§Ãµes.
+6. Mostrar no Swagger ou Postman a consulta de status da OS após as transições.
+7. Executar o request `14 - Listar fila operacional de OS` para demonstrar que OS entregues/finalizadas ficam fora da fila operacional.
 
 ### Sem Docker (perfil dev com H2)
 
@@ -1173,29 +1082,29 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 mvn spring-boot:run "-Dspring-boot.run.profiles=dev"
 ```
 
-> âš ï¸ No perfil `dev` o banco Ã© em memÃ³ria â€” os dados sÃ£o perdidos ao parar a aplicaÃ§Ã£o.
+> ⚠️ No perfil `dev` o banco é em memória — os dados são perdidos ao parar a aplicação.
 
-ApÃ³s subir, acesse:
+Após subir, acesse:
 - **Swagger UI:** http://localhost:8080/swagger-ui.html
 - **API Base:** http://localhost:8080/api
 
 ---
 
-## ðŸ” AutenticaÃ§Ã£o
+## 🔐 Autenticação
 
-A API usa **JWT Bearer Token**. FaÃ§a login para obter o token e envie-o no header de cada requisiÃ§Ã£o:
+A API usa **JWT Bearer Token**. Faça login para obter o token e envie-o no header de cada requisição:
 
 ```
 Authorization: Bearer <token>
 ```
 
-### UsuÃ¡rios de demonstraÃ§Ã£o
+### Usuários de demonstração
 
-| UsuÃ¡rio | Senha | Perfil | Acesso |
+| Usuário | Senha | Perfil | Acesso |
 |---|---|---|---|
-| `atendente1` | `senha123` | ATENDENTE | Clientes, veÃ­culos, orÃ§amentos, pagamentos |
-| `mecanico1` | `senha123` | MECANICO | DiagnÃ³stico, itens da OS, execuÃ§Ã£o |
-| `gestor1` | `senha123` | GESTOR | Acesso completo + KPIs + catÃ¡logo |
+| `atendente1` | `senha123` | ATENDENTE | Clientes, veículos, orçamentos, pagamentos |
+| `mecanico1` | `senha123` | MECANICO | Diagnóstico, itens da OS, execução |
+| `gestor1` | `senha123` | GESTOR | Acesso completo + KPIs + catálogo |
 
 ```bash
 # Exemplo de login
@@ -1206,11 +1115,11 @@ curl -X POST http://localhost:8080/api/auth/login \
 
 ---
 
-## ðŸ”„ Fluxo da Ordem de ServiÃ§o
+## 🔄 Fluxo da Ordem de Serviço
 
 ```
-RECEBIDA â†’ EM_DIAGNOSTICO â†’ AGUARDANDO_APROVACAO â†’ EM_EXECUCAO â†’ FINALIZADA â†’ AGUARDANDO_RETIRADA â†’ ENTREGUE
-                                      â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â†’ CANCELADA
+RECEBIDA → EM_DIAGNOSTICO → AGUARDANDO_APROVACAO → EM_EXECUCAO → FINALIZADA → AGUARDANDO_RETIRADA → ENTREGUE
+                                      └─────────────────────────────────────────────────────────────→ CANCELADA
 ```
 
 | Etapa | Endpoint | Perfil |
@@ -1218,104 +1127,100 @@ RECEBIDA â†’ EM_DIAGNOSTICO â†’ AGUARDANDO_APROVACAO â†’ EM_EXECU
 | Abrir OS | `POST /api/ordens-servico` | ATENDENTE |
 | Abrir OS completa | `POST /api/ordens-servico/completa` | ATENDENTE |
 | Listar fila operacional | `GET /api/ordens-servico/fila` | ATENDENTE / MECANICO / GESTOR |
-| Iniciar diagnÃ³stico | `PATCH /{id}/iniciar-diagnostico` | MECANICO |
-| Gerar orÃ§amento | `POST /{id}/orcamento` | ATENDENTE |
-| Aprovar / Rejeitar | `PATCH /{id}/aprovar` Â· `/{id}/rejeitar` | ATENDENTE |
-| Notificar cliente sobre orÃ§amento | `POST /{id}/orcamento/notificar-cliente` | ATENDENTE / GESTOR |
-| DecisÃ£o externa do cliente | `POST /api/orcamentos/decisoes-cliente/{token}/aprovar` Â· `/recusar` | PÃºblico com token opaco |
-| Finalizar serviÃ§o | `PATCH /{id}/finalizar` | MECANICO |
+| Iniciar diagnóstico | `PATCH /{id}/iniciar-diagnostico` | MECANICO |
+| Gerar orçamento | `POST /{id}/orcamento` | ATENDENTE |
+| Aprovar / Rejeitar | `PATCH /{id}/aprovar` · `/{id}/rejeitar` | ATENDENTE |
+| Notificar cliente sobre orçamento | `POST /{id}/orcamento/notificar-cliente` | ATENDENTE / GESTOR |
+| Decisão externa do cliente | `POST /api/orcamentos/decisoes-cliente/{token}/aprovar` · `/recusar` | Público com token opaco |
+| Finalizar serviço | `PATCH /{id}/finalizar` | MECANICO |
 | Registrar pagamento | `POST /{id}/pagamento` | ATENDENTE |
-| Entregar veÃ­culo | `PATCH /{id}/entregar` | ATENDENTE |
+| Entregar veículo | `PATCH /{id}/entregar` | ATENDENTE |
 
 
 
 ---
 
-## ðŸ—‚ï¸ Estrutura do projeto
+## 🗂️ Estrutura do projeto
 
 ```
 src/main/java/br/com/oficina/
-â”œâ”€â”€ domain/           # Regras de negÃ³cio puras: modelos, VOs e exceÃ§Ãµes de domÃ­nio
-â”‚   â”œâ”€â”€ model/        # Entidades e agregados do domÃ­nio
-â”‚   â”œâ”€â”€ valueobject/  # Objetos de valor com validaÃ§Ã£o prÃ³pria
-â”‚   â””â”€â”€ exception/    # ExceÃ§Ãµes especÃ­ficas do domÃ­nio
-â”œâ”€â”€ application/      # Casos de uso, comandos, queries e ports
-â”‚   â”œâ”€â”€ usecase/      # OrquestraÃ§Ã£o dos fluxos de negÃ³cio
-â”‚   â”œâ”€â”€ port/in/      # Contratos de entrada usados pelos adapters inbound
-â”‚   â”œâ”€â”€ port/out/     # Contratos de saÃ­da implementados pelos adapters outbound
-â”‚   â”œâ”€â”€ command/      # Objetos de comando para escrita
-â”‚   â””â”€â”€ query/        # Objetos de consulta/leitura
-â”œâ”€â”€ adapters/         # Adapters de entrada e saÃ­da
-â”‚   â”œâ”€â”€ in/web/       # Controllers REST, requests, responses e mappers web
-â”‚   â””â”€â”€ out/          # PersistÃªncia, seguranÃ§a, ViaCEP e pagamento mock
-â””â”€â”€ infrastructure/   # ConfiguraÃ§Ãµes Spring, seguranÃ§a JWT e clientes tÃ©cnicos
+├── domain/           # Regras de negócio puras: modelos, VOs e exceções de domínio
+│   ├── model/        # Entidades e agregados do domínio
+│   ├── valueobject/  # Objetos de valor com validação própria
+│   └── exception/    # Exceções específicas do domínio
+├── application/      # Casos de uso, comandos, queries e ports
+│   ├── usecase/      # Orquestração dos fluxos de negócio
+│   ├── port/in/      # Contratos de entrada usados pelos adapters inbound
+│   ├── port/out/     # Contratos de saída implementados pelos adapters outbound
+│   ├── command/      # Objetos de comando para escrita
+│   └── query/        # Objetos de consulta/leitura
+├── adapters/         # Adapters de entrada e saída
+│   ├── in/web/       # Controllers REST, requests, responses e mappers web
+│   └── out/          # Persistência, segurança, ViaCEP e pagamento mock
+└── infrastructure/   # Configurações Spring, segurança JWT e clientes técnicos
 ```
 
 ---
 
-## ðŸ§ª Testes
+## 🧪 Testes
 
-A suÃ­te segue uma pirÃ¢mide de testes para demonstrar robustez em diferentes nÃ­veis:
+A suíte segue uma pirâmide de testes para demonstrar robustez em diferentes níveis:
 
-- **DomÃ­nio:** valida modelos, value objects, invariantes e transiÃ§Ãµes de estado sem Spring.
-- **AplicaÃ§Ã£o/use cases:** valida a orquestraÃ§Ã£o dos fluxos com mocks dos ports de saÃ­da.
-- **Adapters web:** valida controllers REST, payloads JSON, status HTTP, autenticaÃ§Ã£o e RBAC com MockMvc.
-- **SeguranÃ§a e integraÃ§Ãµes simuladas:** valida JWT, regras 401/403, gateway de pagamento mock e cliente ViaCEP isolado.
+- **Domínio:** valida modelos, value objects, invariantes e transições de estado sem Spring.
+- **Aplicação/use cases:** valida a orquestração dos fluxos com mocks dos ports de saída.
+- **Adapters web:** valida controllers REST, payloads JSON, status HTTP, autenticação e RBAC com MockMvc.
+- **Segurança e integrações simuladas:** valida JWT, regras 401/403, gateway de pagamento mock e cliente ViaCEP isolado.
 
-| MÃ©trica | Valor atual | Fonte |
+| Métrica | Valor atual | Fonte |
 |---|---:|---|
 | Classes de teste | 45 | `src/test/**/*.java` |
-| Testes executados | 361 | Ãšltima execuÃ§Ã£o local de `mvn clean test` |
-| Cobertura de instruÃ§Ãµes | 96,23% | `target/site/jacoco/jacoco.csv` |
+| Testes executados | 361 | Última execução local de `mvn clean test` |
+| Cobertura de instruções | 96,23% | `target/site/jacoco/jacoco.csv` |
 | Cobertura `br.com.oficina.application.usecase` | 92,02% | `target/site/jacoco/jacoco.csv` |
 | Cobertura `br.com.oficina.application.exception` | 100% | `target/site/jacoco/jacoco.csv` |
-| Limite mÃ­nimo no build | 95% | `jacoco-maven-plugin` |
+| Limite mínimo no build | 95% | `jacoco-maven-plugin` |
 
-O JaCoCo estÃ¡ integrado ao ciclo Maven e a build falha se a cobertura total de instruÃ§Ãµes ficar abaixo de 95%. A suÃ­te atual usa H2 em memÃ³ria no perfil `test` para velocidade e isolamento; Testcontainers estÃ¡ declarado como extensÃ£o futura para cenÃ¡rios de integraÃ§Ã£o com PostgreSQL real.
+O JaCoCo está integrado ao ciclo Maven e a build falha se a cobertura total de instruções ficar abaixo de 95%. A suíte atual usa H2 em memória no perfil `test` para velocidade e isolamento; Testcontainers está declarado como extensão futura para cenários de integração com PostgreSQL real.
 
 ```bash
-# Executar a suÃ­te e validar cobertura mÃ­nima
+# Executar a suíte e validar cobertura mínima
 mvn clean test
 
-# Gerar relatÃ³rio HTML de cobertura (JaCoCo)
+# Gerar relatório HTML de cobertura (JaCoCo)
 mvn clean test jacoco:report
-# â†’ target/site/jacoco/index.html
+# → target/site/jacoco/index.html
 
-# Gerar relatÃ³rio Allure (Linux/macOS ou caminhos sem caracteres especiais)
+# Gerar relatório Allure (Linux/macOS ou caminhos sem caracteres especiais)
 mvn test allure:report
-# â†’ target/site/allure-maven-plugin/index.html
+# → target/site/allure-maven-plugin/index.html
 
 # Windows PowerShell (recomendado neste projeto)
 .\allure-report.ps1
-# â†’ roda testes, gera target/allure-report e abre em http://localhost:9090
+# → roda testes, gera target/allure-report e abre em http://localhost:9090
 # O script evita problemas do allure.bat com caminhos contendo caracteres especiais, como '&'.
 
 ```
 ---
 
-## ðŸ“ DocumentaÃ§Ã£o adicional
+## 📁 Documentação adicional
 
-| Recurso | LocalizaÃ§Ã£o |
+| Recurso | Localização |
 |---|---|
 | Diagramas DDD (PlantUML) | [`docs/diagramas`](./docs/diagramas) |
-| ADRs (decisÃµes de arquitetura) | [`docs/ADRS`](./docs/ADRS) |
-| Collection Postman (280 requests) | [`postman`](./postman) |
-| Baseline de contrato da API | [`docs/api-contract-baseline.md`](./docs/api-contract-baseline.md) |
-| RequisiÃ§Ãµes HTTP (VS Code) | [`api-requests.http`](./api-requests.http) |
-| Requisitos Funcionais e NÃ£o Funcionais | [`docs/requisitos`](./docs/requisitos) |
-| RelatÃ³rio de Vulnerabilidades OWASP | [`docs/ReportOWASP`](./docs/ReportOWASP) |
-| Plano de deploy AWS da Fase 2 | [`docs/fase-2/plano-deploy-aws.md`](./docs/fase-2/plano-deploy-aws.md) |
-| Arquitetura da Fase 2 | [`docs/fase-2/arquitetura-fase-2.md`](./docs/fase-2/arquitetura-fase-2.md) |
-| VÃ­deo demonstrativo da Fase 2 | `TODO: adicionar link pÃºblico ou nÃ£o listado do YouTube/Vimeo` |
+| ADRs (decisões de arquitetura) | [`docs/ADRS`](./docs/ADRS) |
+| Collection Postman | [`postman`](./postman) |
+| Requisições HTTP (VS Code) | [`api-requests.http`](./api-requests.http) |
+| Requisitos Funcionais e Não Funcionais | [`docs/requisitos`](./docs/requisitos) |
+| Relatório de Vulnerabilidades OWASP | [`docs/ReportOWASP`](./docs/ReportOWASP) |
 | BrainStorming | Miro link abaixo |
 | Domain Storytelling | Miro link abaixo |
-| Diagrama de Linguagem UbÃ­qua | Miro link abaixo |
+| Diagrama de Linguagem Ubíqua | Miro link abaixo |
 | EventStorming | Miro link abaixo |
 | Diagrama de Contexto Limitado | Miro link abaixo |
 
 https://miro.com/app/board/uXjVHc0alo8=/?share_link_id=611826904943
 
 
-## ðŸ“„ LicenÃ§a
+## 📄 Licença
 
-Projeto desenvolvido para fins acadÃªmicos â€” **PÃ³s-GraduaÃ§Ã£o FIAP**.
+Projeto desenvolvido para fins acadêmicos — **Pós-Graduação FIAP**.
