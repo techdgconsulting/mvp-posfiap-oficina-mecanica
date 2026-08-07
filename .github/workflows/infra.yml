@@ -2,6 +2,15 @@ name: Infra CI/CD - Terraform AWS
 
 on:
   workflow_dispatch:
+    inputs:
+      action:
+        description: "Terraform action to run"
+        required: true
+        default: "apply"
+        type: choice
+        options:
+          - apply
+          - destroy
   push:
     branches:
       - main
@@ -16,10 +25,13 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   PROJECT_NAME: oficina-dgcar-16soat
   ENVIRONMENT: development
+  TF_ACTION: ${{ github.event_name == 'workflow_dispatch' && inputs.action || 'apply' }}
+  K8S_NAMESPACE: oficina
+  K8S_DEPLOYMENT: oficina-api
 
 jobs:
   terraform:
-    name: Provision infrastructure
+    name: Terraform ${{ github.event_name == 'workflow_dispatch' && inputs.action || 'apply' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -40,6 +52,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Bootstrap Terraform backend bucket
+        if: env.TF_ACTION == 'apply'
         shell: bash
         env:
           TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
@@ -152,13 +165,52 @@ jobs:
         run: terraform validate
 
       - name: Terraform plan
+        if: env.TF_ACTION == 'apply'
         working-directory: infra
         run: terraform plan -out=tfplan
 
       - name: Terraform apply
+        if: env.TF_ACTION == 'apply'
         working-directory: infra
         run: terraform apply -auto-approve tfplan
 
       - name: Print Terraform outputs
+        if: env.TF_ACTION == 'apply'
         working-directory: infra
         run: terraform output
+
+      - name: Read Terraform outputs before destroy
+        if: env.TF_ACTION == 'destroy'
+        id: destroy-outputs
+        working-directory: infra
+        continue-on-error: true
+        run: |
+          echo "eks_cluster_name=$(terraform output -raw eks_cluster_name)" >> "$GITHUB_OUTPUT"
+
+      - name: Delete Kubernetes resources before destroy
+        if: env.TF_ACTION == 'destroy' && steps.destroy-outputs.outputs.eks_cluster_name != ''
+        continue-on-error: true
+        env:
+          EKS_CLUSTER_NAME: ${{ steps.destroy-outputs.outputs.eks_cluster_name }}
+        run: |
+          aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
+
+          kubectl delete service oficina-api -n "$K8S_NAMESPACE" --ignore-not-found=true
+          kubectl delete namespace "$K8S_NAMESPACE" --ignore-not-found=true
+
+          for attempt in $(seq 1 30); do
+            LOAD_BALANCERS="$(aws elbv2 describe-load-balancers --region "$AWS_REGION" --query 'LoadBalancers[?contains(LoadBalancerName, `k8s-oficina`) == `true`].LoadBalancerArn' --output text)"
+
+            if [ -z "$LOAD_BALANCERS" ]; then
+              echo "Kubernetes LoadBalancers removed."
+              break
+            fi
+
+            echo "Waiting for Kubernetes LoadBalancers to be removed... attempt $attempt/30"
+            sleep 10
+          done
+
+      - name: Terraform destroy
+        if: env.TF_ACTION == 'destroy'
+        working-directory: infra
+        run: terraform destroy -auto-approve
