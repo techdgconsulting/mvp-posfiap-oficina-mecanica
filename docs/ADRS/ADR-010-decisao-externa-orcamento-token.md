@@ -1,7 +1,7 @@
 # ADR-010: Decisão Externa de Orçamento por Token
 
 **Status:** Aceito  
-**Data:** 2026-07-07  
+**Data:** 2026-08-07  
 **Autor:** Diego Gonzalez
 
 ## Contexto

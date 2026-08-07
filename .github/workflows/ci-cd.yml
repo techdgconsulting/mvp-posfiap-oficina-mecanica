@@ -1,16 +1,18 @@
-name: CI/CD - Oficina Mecanica DGCar
+name: CI/CD Unified - Infra + Aplicacao + Deploy
 
 on:
-  pull_request:
-    branches:
-      - main
   push:
     branches:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
+  PROJECT_NAME: oficina-dgcar-16soat
+  ENVIRONMENT: development
   EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
   K8S_NAMESPACE: oficina
@@ -18,9 +20,88 @@ env:
   K8S_CONTAINER: oficina-api
 
 jobs:
-  test:
-    name: Build and test
+  infra:
+    name: Provision infrastructure with Terraform
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create backend file for Terraform
+        working-directory: infra
+        run: |
+          cat > backend.tf <<EOF
+          terraform {
+            backend "s3" {
+              bucket       = "${{ secrets.TF_STATE_BUCKET }}"
+              key          = "${{ secrets.TF_STATE_KEY }}"
+              region       = "${{ env.AWS_REGION }}"
+              encrypt      = true
+              use_lockfile = true
+            }
+          }
+          EOF
+
+      - name: Create terraform.tfvars for pipeline execution
+        working-directory: infra
+        run: |
+          cat > terraform.tfvars <<EOF
+          aws_region  = "${{ env.AWS_REGION }}"
+          project_name = "${{ env.PROJECT_NAME }}"
+          environment  = "${{ env.ENVIRONMENT }}"
+
+          eks_cluster_version = null
+
+          node_instance_types = ["t3.small"]
+          node_desired_size   = 1
+          node_min_size       = 1
+          node_max_size       = 2
+          node_disk_size      = 20
+
+          db_name                  = "oficina"
+          db_username              = "${{ secrets.DB_USERNAME }}"
+          db_password              = "${{ secrets.DB_PASSWORD }}"
+          db_instance_class        = "db.t4g.micro"
+          db_allocated_storage     = 20
+          db_max_allocated_storage = 30
+
+          enable_github_actions_eks_access = true
+          github_actions_iam_user_name     = "github-actions-oficina-dgcar"
+          EOF
+
+      - name: Terraform init
+        working-directory: infra
+        run: terraform init -reconfigure
+
+      - name: Terraform validate
+        working-directory: infra
+        run: terraform validate
+
+      - name: Terraform plan
+        working-directory: infra
+        run: terraform plan -out=tfplan
+
+      - name: Terraform apply
+        working-directory: infra
+        run: terraform apply -auto-approve tfplan
+
+  build-test:
+    name: Build and test application
+    runs-on: ubuntu-latest
+    needs: infra
 
     steps:
       - name: Checkout repository
@@ -46,28 +127,12 @@ jobs:
             target/site/jacoco
           if-no-files-found: ignore
 
-  docker-build:
-    name: Docker build
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Build Docker image locally
-        run: docker build -t oficina-api:${{ github.sha }} .
-
   deploy:
-    name: Build, push and deploy to EKS
+    name: Build image, push to ECR and deploy on EKS
     runs-on: ubuntu-latest
     needs:
-      - test
-    if: github.event_name != 'pull_request'
-
-    permissions:
-      contents: read
+      - infra
+      - build-test
 
     steps:
       - name: Checkout repository
@@ -97,7 +162,10 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
 
-      - name: Create or update Kubernetes Secret
+      - name: Create or update Kubernetes namespace
+        run: kubectl create namespace "$K8S_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create or update Kubernetes secret
         env:
           SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
@@ -105,7 +173,6 @@ jobs:
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
-          kubectl create namespace "$K8S_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
           kubectl create secret generic oficina-api-secret -n "$K8S_NAMESPACE" \
             --from-literal=SPRING_DATASOURCE_USERNAME="$SPRING_DATASOURCE_USERNAME" \
             --from-literal=SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD" \
@@ -124,3 +191,8 @@ jobs:
 
       - name: Wait for rollout
         run: kubectl rollout status deployment/"$K8S_DEPLOYMENT" -n "$K8S_NAMESPACE" --timeout=180s
+
+      - name: Print deployment URL
+        run: |
+          kubectl get svc oficina-api -n "$K8S_NAMESPACE"
+          echo "Swagger: http://$(kubectl get svc oficina-api -n "$K8S_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')/swagger-ui.html"
