@@ -234,7 +234,7 @@ Em produção real, a recomendação seria usar nodes em subnets privadas, NAT G
 10. Revisar seguranca e boas praticas.
 11. Destruir o ambiente apos a demonstracao para reduzir custos.
 
-Para mantenedores com permissao administrativa no repositorio, a publicacao da imagem e o deploy tambem podem ser feitos pela pipeline CI/CD. Nesse caso, execute os passos opcionais de GitHub Actions ao final do roteiro.
+Para mantenedores com permissao administrativa no repositorio, a infraestrutura e o deploy da aplicacao tambem podem ser feitos por GitHub Actions. O projeto usa duas pipelines separadas: uma para infraestrutura e outra para aplicacao. Assim, commits de codigo nao executam `terraform apply`.
 
 ### Passo A Passo Completo Para Subida Da Infra E Deploy Manual
 
@@ -728,8 +728,10 @@ Configure no repositorio GitHub:
 AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY
 AWS_REGION
-EKS_CLUSTER_NAME
-ECR_REPOSITORY
+TF_STATE_BUCKET
+TF_STATE_KEY
+DB_USERNAME
+DB_PASSWORD
 SPRING_DATASOURCE_USERNAME
 SPRING_DATASOURCE_PASSWORD
 JWT_SECRET
@@ -741,8 +743,10 @@ Valores esperados para este projeto:
 
 ```text
 AWS_REGION=us-east-1
-EKS_CLUSTER_NAME=oficina-dgcar-academic-eks
-ECR_REPOSITORY=oficina-dgcar/oficina-api
+TF_STATE_BUCKET=oficina-dgcar-fiap-tfstate-tsoat16
+TF_STATE_KEY=oficina-dgcar/academic/terraform.tfstate
+DB_USERNAME=oficina
+DB_PASSWORD=senha-do-rds
 SPRING_DATASOURCE_USERNAME=oficina
 SPRING_DATASOURCE_PASSWORD=senha-do-rds
 JWT_SECRET=chave-forte-com-no-minimo-32-caracteres
@@ -750,13 +754,9 @@ SMTP_USERNAME=
 SMTP_PASSWORD=
 ```
 
-O secret `ECR_REPOSITORY` deve receber apenas o nome do repositório:
+Os secrets `SPRING_DATASOURCE_USERNAME` e `SPRING_DATASOURCE_PASSWORD` sao opcionais se forem iguais a `DB_USERNAME` e `DB_PASSWORD`. A pipeline da aplicacao usa esses valores como fallback.
 
-```text
-oficina-dgcar/oficina-api
-```
-
-Não colocar a URL completa do registry nesse secret.
+Nao e necessario cadastrar `EKS_CLUSTER_NAME` nem `ECR_REPOSITORY`. A pipeline da aplicacao le `eks_cluster_name`, `ecr_repository_url` e `spring_datasource_url` diretamente dos outputs do Terraform no state remoto.
 
 Para gerar o valor de `JWT_SECRET` antes de cadastrar no GitHub:
 
@@ -764,9 +764,32 @@ Para gerar o valor de `JWT_SECRET` antes de cadastrar no GitHub:
 openssl rand -base64 48
 ```
 
-#### 13. Commitar E Disparar A Esteira CI/CD (Opcional Para Mantenedores)
+#### 13. Disparar As Esteiras CI/CD Separadas (Opcional Para Mantenedores)
 
 Este passo não é necessário para o deploy manual. Use apenas quando os GitHub Secrets ja estiverem configurados e o usuario/role da pipeline ja tiver acesso ao EKS.
+
+Primeiro execute a esteira de infraestrutura:
+
+```text
+.github/workflows/infra.yml
+```
+
+Ela pode ser disparada manualmente por `workflow_dispatch` ou automaticamente quando houver mudanca em `infra/**`. Essa esteira executa:
+
+```text
+bootstrap governado do bucket S3 do Terraform state
+terraform init
+terraform validate
+terraform plan
+terraform apply
+terraform output
+```
+
+Depois execute a esteira da aplicacao:
+
+```text
+.github/workflows/app-cd.yml
+```
 
 ```bash
 git status
@@ -775,18 +798,21 @@ git commit -m "feat: add aws eks terraform ci cd phase 2"
 git push origin main
 ```
 
-O push na `main` dispara `.github/workflows/ci-cd.yml`. A pipeline executa:
+O push na `main` dispara `.github/workflows/app-cd.yml` somente quando houver mudanca em codigo da aplicacao, `Dockerfile`, `pom.xml`, `k8s/**` ou no proprio workflow. Essa pipeline nao executa `terraform apply`; ela apenas le os outputs do Terraform no state remoto e executa:
 
 ```text
 mvn clean test
+terraform output
 docker build
 login no Amazon ECR
 docker push para o ECR
 aws eks update-kubeconfig
 kubectl create/update secret
+preparo do ConfigMap e kustomization com outputs do Terraform
 kubectl apply -k k8s
 kubectl set image deployment/oficina-api
 kubectl rollout status
+atualizacao de OFICINA_PUBLIC_BASE_URL com o LoadBalancer
 ```
 
 A imagem publicada terá o formato:

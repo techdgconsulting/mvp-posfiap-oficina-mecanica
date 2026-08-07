@@ -11,7 +11,8 @@ left to right direction
 
 actor "Developer / Maintainer" as dev
 rectangle "GitHub Repository" as repo
-rectangle "GitHub Actions" as gha
+rectangle "Infra Workflow\ninfra.yml" as infraWorkflow
+rectangle "App Workflow\napp-cd.yml" as appWorkflow
 rectangle "Terraform" as tf
 rectangle "S3 State Backend" as s3
 rectangle "AWS" as aws
@@ -26,45 +27,47 @@ rectangle "Service LoadBalancer" as svc
 rectangle "Swagger / API" as api
 
 dev --> repo : push / merge / dispatch
-repo --> gha : trigger workflow
+repo --> infraWorkflow : infra/** ou dispatch manual
+repo --> appWorkflow : src / k8s / Dockerfile / pom.xml
 
-gha --> tf : terraform init / plan / apply
-
+infraWorkflow --> s3 : cria/garante backend
+infraWorkflow --> tf : terraform init / plan / apply
 tf --> s3 : read/write state
 s3 --> tf : terraform.tfstate remote
-
 tf --> infra : provisiona infraestrutura
 infra --> aws : VPC, EKS, RDS, ECR, IAM
 
-gha --> docker : mvn test + docker build
+appWorkflow --> tf : terraform output
+tf --> s3 : read state
+s3 --> appWorkflow : ECR, EKS, JDBC URL
 
+appWorkflow --> docker : mvn test + docker build
 docker --> ecr : push image versionada
-
-gha --> eks : aws eks update-kubeconfig
-
-gha --> ns : create namespace
-
-gha --> k8sconf : create/update secret
-
-gha --> deploy : kubectl apply -k k8s
-
+appWorkflow --> eks : aws eks update-kubeconfig
+appWorkflow --> ns : create namespace
+appWorkflow --> k8sconf : create/update config e secret
+appWorkflow --> deploy : kubectl apply -k k8s
 deploy --> eks : deployment oficina-api
-
-deploy --> svc : expõe API via LoadBalancer
+deploy --> svc : expoe API via LoadBalancer
 svc --> api : http://host/swagger-ui.html
 
 api --> aws : acesso ao banco no RDS via JDBC
 aws --> infra : RDS PostgreSQL
 
-note right of gha
-  Fluxo único da pipeline:
-  1) provisiona infra
-a 2) testa app
-  3) constrói imagem
+note right of infraWorkflow
+  Infra workflow:
+  1) prepara S3 backend
+  2) executa Terraform
+  3) cria/atualiza AWS
+end note
+
+note right of appWorkflow
+  App workflow:
+  1) testa app
+  2) le outputs da infra
+  3) constroi imagem
   4) publica no ECR
-  5) prepara cluster
-  6) aplica K8s
-  7) atualiza deployment
-  8) expõe serviço
+  5) aplica Kubernetes
+  6) atualiza deployment
 end note
 @enduml
