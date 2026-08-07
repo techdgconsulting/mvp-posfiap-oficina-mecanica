@@ -2,7 +2,7 @@
 
 ## Visão geral
 
-Este fluxo representa a pipeline unificada do projeto, cobrindo:
+Este fluxo representa as pipelines separadas do projeto, cobrindo:
 
 - provisionamento da infraestrutura na AWS com Terraform
 - execução de testes da aplicação
@@ -16,17 +16,20 @@ Este fluxo representa a pipeline unificada do projeto, cobrindo:
 
 ## Ordem de execução
 
-1. O desenvolvedor faz push ou dispara o workflow manualmente.
-2. A GitHub Actions inicia a pipeline.
-3. O job `infra` executa `terraform init`, `plan` e `apply`.
-4. O job `build-test` executa `mvn clean test`.
-5. O job `deploy` faz o login no ECR, builda a imagem Docker e publica no registro.
-6. O job `deploy` atualiza o `kubeconfig` do EKS.
-7. O job cria o namespace e o `Secret` com credenciais sensíveis.
-8. O comando `kubectl apply -k k8s` aplica os manifestos do Kubernetes.
-9. O deployment `oficina-api` recebe a imagem nova com `kubectl set image`.
-10. O rollout aguarda a disponibilidade do pod.
-11. O Service expõe a aplicação e gera o endpoint público da API.
+1. Um mantenedor dispara `.github/workflows/infra.yml` manualmente ou altera arquivos em `infra/**`.
+2. A esteira de infraestrutura cria/garante o bucket S3 do Terraform state.
+3. A esteira de infraestrutura executa `terraform init`, `validate`, `plan` e `apply`.
+4. O Terraform provisiona VPC, EKS, RDS, ECR e IAM.
+5. Um push de código da aplicação dispara `.github/workflows/app-cd.yml`.
+6. A esteira da aplicação executa `mvn clean test`.
+7. A esteira da aplicação lê `terraform output` do state remoto, sem executar `terraform apply`.
+8. A esteira da aplicação faz login no ECR, builda a imagem Docker e publica no registro.
+9. A esteira da aplicação atualiza o `kubeconfig` do EKS.
+10. O job cria o namespace e o `Secret` com credenciais sensíveis.
+11. O comando `kubectl apply -k k8s` aplica os manifestos do Kubernetes.
+12. O deployment `oficina-api` recebe a imagem nova com `kubectl set image`.
+13. O rollout aguarda a disponibilidade do pod.
+14. O Service expõe a aplicação e gera o endpoint público da API.
 
 ## Componentes criados
 
@@ -56,9 +59,10 @@ Este fluxo representa a pipeline unificada do projeto, cobrindo:
 
 ## Observações importantes
 
-- O Terraform não deve ser executado em cada commit sem controle; ele depende do estado remoto do S3 e do mesmo ambiente.
+- O Terraform não deve ser executado em cada commit de aplicação; ele depende do estado remoto do S3 e do mesmo ambiente.
 - Para manutenção segura, o nome do projeto, ambiente e bucket do backend devem permanecer consistentes.
 - A pipeline da aplicação não deve recriar a infraestrutura em cada push; ela deve apenas atualizar a imagem e o deployment da aplicação.
+- A pipeline da aplicação consome `ecr_repository_url`, `eks_cluster_name` e `spring_datasource_url` dos outputs do Terraform.
 - O banco e os recursos de rede ficam sob responsabilidade da infraestrutura provisionada pelo Terraform.
 
 ## Diagrama

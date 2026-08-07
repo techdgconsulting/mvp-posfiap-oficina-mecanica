@@ -126,16 +126,18 @@ A aplicação foi preparada para evoluir de um ambiente local para uma execuçã
 
 **Consequência:** o ambiente passa a ser verificado de forma mais completa, reduzindo risco de falhas em demonstração ou operação.
 
-### 11. Pipeline CI/CD
-**Decisão:** automatizar testes, validação da imagem Docker e deploy no EKS por meio de GitHub Actions.
+### 11. Pipelines CI/CD separadas
+**Decisão:** separar a automação em duas esteiras no GitHub Actions: uma para infraestrutura (`infra.yml`) e outra para aplicação (`app-cd.yml`).
 
 **Por quê:**
 - a automação reduz esforço manual e erros humanos;
 - a pipeline garante que mudanças passam por validação antes de chegar ao ambiente;
 - o push para o ECR e o deploy no EKS tornam o processo mais consistente e repetível;
+- commits de aplicação não devem executar `terraform apply` nem alterar a infraestrutura por acidente;
+- a esteira da aplicação pode consumir `terraform output` do state remoto sem recriar VPC, EKS, RDS, ECR ou IAM;
 - esse fluxo é alinhado com a proposta de uma solução moderna e preparada para evolução.
 
-**Consequência:** a aplicação ganha um caminho de entrega mais profissional, com rastreabilidade e maior previsibilidade.
+**Consequência:** a infraestrutura passa a evoluir por um fluxo controlado e a aplicação ganha um caminho de entrega mais profissional, com rastreabilidade, menor risco operacional e maior previsibilidade.
 
 ### 12. Segurança e boas práticas
 **Decisão:** adotar boas práticas de segurança desde o início do provisionamento e do deploy.

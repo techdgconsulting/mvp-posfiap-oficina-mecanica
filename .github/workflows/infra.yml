@@ -1,0 +1,164 @@
+name: Infra CI/CD - Terraform AWS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/**"
+      - ".github/workflows/infra.yml"
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  PROJECT_NAME: oficina-dgcar-16soat
+  ENVIRONMENT: development
+
+jobs:
+  terraform:
+    name: Provision infrastructure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Bootstrap Terraform backend bucket
+        shell: bash
+        env:
+          TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        run: |
+          echo "Current AWS principal: $(aws sts get-caller-identity --query Arn --output text)"
+
+          if aws s3api head-bucket --bucket "$TF_STATE_BUCKET" --region "$AWS_REGION" >/dev/null 2>&1; then
+            echo "Terraform backend bucket already exists: $TF_STATE_BUCKET"
+          else
+            echo "Terraform backend bucket not found. Creating governed S3 backend with Terraform."
+
+            cat > infra/backend-bootstrap/terraform.tfvars <<EOF
+          aws_region        = "$AWS_REGION"
+          project_name      = "${{ env.PROJECT_NAME }}"
+          environment       = "${{ env.ENVIRONMENT }}"
+          state_bucket_name = "$TF_STATE_BUCKET"
+          EOF
+
+            terraform -chdir=infra/backend-bootstrap init
+            terraform -chdir=infra/backend-bootstrap validate
+            terraform -chdir=infra/backend-bootstrap apply -auto-approve
+          fi
+
+          echo "Enforcing backend bucket governance settings."
+
+          aws s3api put-bucket-versioning \
+            --bucket "$TF_STATE_BUCKET" \
+            --versioning-configuration Status=Enabled
+
+          aws s3api put-bucket-encryption \
+            --bucket "$TF_STATE_BUCKET" \
+            --server-side-encryption-configuration '{
+              "Rules": [
+                {
+                  "ApplyServerSideEncryptionByDefault": {
+                    "SSEAlgorithm": "AES256"
+                  }
+                }
+              ]
+            }'
+
+          aws s3api put-public-access-block \
+            --bucket "$TF_STATE_BUCKET" \
+            --public-access-block-configuration '{
+              "BlockPublicAcls": true,
+              "IgnorePublicAcls": true,
+              "BlockPublicPolicy": true,
+              "RestrictPublicBuckets": true
+            }'
+
+          aws s3api put-bucket-ownership-controls \
+            --bucket "$TF_STATE_BUCKET" \
+            --ownership-controls '{
+              "Rules": [
+                {
+                  "ObjectOwnership": "BucketOwnerEnforced"
+                }
+              ]
+            }'
+
+      - name: Create backend file for Terraform
+        working-directory: infra
+        run: |
+          cat > backend.tf <<EOF
+          terraform {
+            backend "s3" {
+              bucket       = "${{ secrets.TF_STATE_BUCKET }}"
+              key          = "${{ secrets.TF_STATE_KEY }}"
+              region       = "${{ env.AWS_REGION }}"
+              encrypt      = true
+              use_lockfile = true
+            }
+          }
+          EOF
+
+      - name: Create terraform.tfvars for pipeline execution
+        working-directory: infra
+        run: |
+          cat > terraform.tfvars <<EOF
+          aws_region  = "${{ env.AWS_REGION }}"
+          project_name = "${{ env.PROJECT_NAME }}"
+          environment  = "${{ env.ENVIRONMENT }}"
+
+          eks_cluster_version = null
+
+          node_instance_types = ["t3.small"]
+          node_desired_size   = 1
+          node_min_size       = 1
+          node_max_size       = 2
+          node_disk_size      = 20
+
+          db_name                  = "oficina"
+          db_username              = "${{ secrets.DB_USERNAME }}"
+          db_password              = "${{ secrets.DB_PASSWORD }}"
+          db_instance_class        = "db.t4g.micro"
+          db_allocated_storage     = 20
+          db_max_allocated_storage = 30
+
+          enable_github_actions_eks_access = true
+          github_actions_iam_user_name     = "github-actions-oficina-dgcar"
+          EOF
+
+      - name: Terraform init
+        working-directory: infra
+        run: terraform init -reconfigure
+
+      - name: Terraform validate
+        working-directory: infra
+        run: terraform validate
+
+      - name: Terraform plan
+        working-directory: infra
+        run: terraform plan -out=tfplan
+
+      - name: Terraform apply
+        working-directory: infra
+        run: terraform apply -auto-approve tfplan
+
+      - name: Print Terraform outputs
+        working-directory: infra
+        run: terraform output

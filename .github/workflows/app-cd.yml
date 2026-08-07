@@ -1,139 +1,30 @@
-name: CI/CD Unified - Infra + Aplicacao + Deploy
+name: App CI/CD - Build, Test and Deploy
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-  workflow_dispatch:
+    paths:
+      - "src/**"
+      - "k8s/**"
+      - "Dockerfile"
+      - "pom.xml"
+      - ".github/workflows/app-cd.yml"
 
 permissions:
   contents: read
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  PROJECT_NAME: oficina-dgcar-16soat
-  ENVIRONMENT: development
   K8S_NAMESPACE: oficina
   K8S_DEPLOYMENT: oficina-api
   K8S_CONTAINER: oficina-api
 
 jobs:
-  infra:
-    name: Provision infrastructure with Terraform
-    runs-on: ubuntu-latest
-    outputs:
-      ecr_repository_url: ${{ steps.terraform-outputs.outputs.ecr_repository_url }}
-      eks_cluster_name: ${{ steps.terraform-outputs.outputs.eks_cluster_name }}
-      spring_datasource_url: ${{ steps.terraform-outputs.outputs.spring_datasource_url }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.15.8
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Ensure Terraform backend bucket exists
-        shell: bash
-        env:
-          TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-        run: |
-          echo "Current AWS principal: $(aws sts get-caller-identity --query Arn --output text)"
-
-          if aws s3api head-bucket --bucket "$TF_STATE_BUCKET" --region "$AWS_REGION" >/dev/null 2>&1; then
-            echo "Terraform backend bucket already exists: $TF_STATE_BUCKET"
-          else
-            echo "Terraform backend bucket not found. Creating bucket: $TF_STATE_BUCKET"
-            if aws s3 mb "s3://$TF_STATE_BUCKET" --region "$AWS_REGION"; then
-              echo "Bucket created successfully."
-            else
-              echo "Bucket creation failed because the current AWS principal does not have s3:CreateBucket permission."
-              echo "Create the S3 bucket once with an AWS admin/root principal or run the bootstrap Terraform under privileged credentials."
-              echo "Then rerun the workflow with the same TF_STATE_BUCKET secret."
-              exit 1
-            fi
-          fi
-
-      - name: Create backend file for Terraform
-        working-directory: infra
-        run: |
-          cat > backend.tf <<EOF
-          terraform {
-            backend "s3" {
-              bucket       = "${{ secrets.TF_STATE_BUCKET }}"
-              key          = "${{ secrets.TF_STATE_KEY }}"
-              region       = "${{ env.AWS_REGION }}"
-              encrypt      = true
-              use_lockfile = true
-            }
-          }
-          EOF
-
-      - name: Create terraform.tfvars for pipeline execution
-        working-directory: infra
-        run: |
-          cat > terraform.tfvars <<EOF
-          aws_region  = "${{ env.AWS_REGION }}"
-          project_name = "${{ env.PROJECT_NAME }}"
-          environment  = "${{ env.ENVIRONMENT }}"
-
-          eks_cluster_version = null
-
-          node_instance_types = ["t3.small"]
-          node_desired_size   = 1
-          node_min_size       = 1
-          node_max_size       = 2
-          node_disk_size      = 20
-
-          db_name                  = "oficina"
-          db_username              = "${{ secrets.DB_USERNAME }}"
-          db_password              = "${{ secrets.DB_PASSWORD }}"
-          db_instance_class        = "db.t4g.micro"
-          db_allocated_storage     = 20
-          db_max_allocated_storage = 30
-
-          enable_github_actions_eks_access = true
-          github_actions_iam_user_name     = "github-actions-oficina-dgcar"
-          EOF
-
-      - name: Terraform init
-        working-directory: infra
-        run: terraform init -reconfigure
-
-      - name: Terraform validate
-        working-directory: infra
-        run: terraform validate
-
-      - name: Terraform plan
-        working-directory: infra
-        run: terraform plan -out=tfplan
-
-      - name: Terraform apply
-        working-directory: infra
-        run: terraform apply -auto-approve tfplan
-
-      - name: Export Terraform outputs
-        id: terraform-outputs
-        working-directory: infra
-        run: |
-          echo "ecr_repository_url=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
-          echo "eks_cluster_name=$(terraform output -raw eks_cluster_name)" >> "$GITHUB_OUTPUT"
-          echo "spring_datasource_url=$(terraform output -raw spring_datasource_url)" >> "$GITHUB_OUTPUT"
-
   build-test:
     name: Build and test application
     runs-on: ubuntu-latest
-    needs: infra
 
     steps:
       - name: Checkout repository
@@ -162,13 +53,17 @@ jobs:
   deploy:
     name: Build image, push to ECR and deploy on EKS
     runs-on: ubuntu-latest
-    needs:
-      - infra
-      - build-test
+    needs: build-test
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+          terraform_wrapper: false
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -177,23 +72,85 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Create backend file for Terraform outputs
+        working-directory: infra
+        run: |
+          cat > backend.tf <<EOF
+          terraform {
+            backend "s3" {
+              bucket       = "${{ secrets.TF_STATE_BUCKET }}"
+              key          = "${{ secrets.TF_STATE_KEY }}"
+              region       = "${{ env.AWS_REGION }}"
+              encrypt      = true
+              use_lockfile = true
+            }
+          }
+          EOF
+
+      - name: Read Terraform outputs
+        id: terraform-outputs
+        working-directory: infra
+        run: |
+          terraform init -reconfigure
+
+          ECR_REPOSITORY_URL="$(terraform output -raw ecr_repository_url)"
+          EKS_CLUSTER_NAME="$(terraform output -raw eks_cluster_name)"
+          SPRING_DATASOURCE_URL="$(terraform output -raw spring_datasource_url)"
+
+          if [ -z "$ECR_REPOSITORY_URL" ]; then
+            echo "::error::Terraform output ecr_repository_url is empty. Run the infra workflow first and check the remote state configuration."
+            exit 1
+          fi
+
+          if [ -z "$EKS_CLUSTER_NAME" ]; then
+            echo "::error::Terraform output eks_cluster_name is empty. Run the infra workflow first and check the remote state configuration."
+            exit 1
+          fi
+
+          if [ -z "$SPRING_DATASOURCE_URL" ]; then
+            echo "::error::Terraform output spring_datasource_url is empty. Run the infra workflow first and check the remote state configuration."
+            exit 1
+          fi
+
+          if [[ ! "$ECR_REPOSITORY_URL" =~ ^[0-9]+\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/.+ ]]; then
+            echo "::error::Terraform output ecr_repository_url is not a valid ECR repository URL: $ECR_REPOSITORY_URL"
+            exit 1
+          fi
+
+          echo "Using ECR repository: $ECR_REPOSITORY_URL"
+          echo "Using EKS cluster: $EKS_CLUSTER_NAME"
+
+          echo "ecr_repository_url=$ECR_REPOSITORY_URL" >> "$GITHUB_OUTPUT"
+          echo "eks_cluster_name=$EKS_CLUSTER_NAME" >> "$GITHUB_OUTPUT"
+          echo "spring_datasource_url=$SPRING_DATASOURCE_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Validate Docker image URI
+        env:
+          IMAGE_URI: ${{ steps.terraform-outputs.outputs.ecr_repository_url }}:${{ github.sha }}
+        run: |
+          if [[ ! "$IMAGE_URI" =~ ^[0-9]+\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/.+:[0-9a-f]{40}$ ]]; then
+            echo "::error::Invalid Docker image URI generated from Terraform outputs: $IMAGE_URI"
+            exit 1
+          fi
+
+          echo "Docker image URI is valid: $IMAGE_URI"
+
       - name: Login to Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build Docker image
         env:
-          IMAGE_URI: ${{ needs.infra.outputs.ecr_repository_url }}:${{ github.sha }}
+          IMAGE_URI: ${{ steps.terraform-outputs.outputs.ecr_repository_url }}:${{ github.sha }}
         run: docker build -t "$IMAGE_URI" .
 
       - name: Push Docker image
         env:
-          IMAGE_URI: ${{ needs.infra.outputs.ecr_repository_url }}:${{ github.sha }}
+          IMAGE_URI: ${{ steps.terraform-outputs.outputs.ecr_repository_url }}:${{ github.sha }}
         run: docker push "$IMAGE_URI"
 
       - name: Update kubeconfig
         env:
-          EKS_CLUSTER_NAME: ${{ needs.infra.outputs.eks_cluster_name }}
+          EKS_CLUSTER_NAME: ${{ steps.terraform-outputs.outputs.eks_cluster_name }}
         run: aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
 
       - name: Create or update Kubernetes namespace
@@ -222,8 +179,8 @@ jobs:
 
       - name: Prepare Kubernetes manifests from Terraform outputs
         env:
-          IMAGE_URI: ${{ needs.infra.outputs.ecr_repository_url }}:${{ github.sha }}
-          SPRING_DATASOURCE_URL: ${{ needs.infra.outputs.spring_datasource_url }}
+          IMAGE_URI: ${{ steps.terraform-outputs.outputs.ecr_repository_url }}:${{ github.sha }}
+          SPRING_DATASOURCE_URL: ${{ steps.terraform-outputs.outputs.spring_datasource_url }}
         run: |
           IMAGE_REPOSITORY="${IMAGE_URI%:*}"
           IMAGE_TAG="${IMAGE_URI##*:}"
@@ -238,7 +195,7 @@ jobs:
 
       - name: Update deployment image
         env:
-          IMAGE_URI: ${{ needs.infra.outputs.ecr_repository_url }}:${{ github.sha }}
+          IMAGE_URI: ${{ steps.terraform-outputs.outputs.ecr_repository_url }}:${{ github.sha }}
         run: kubectl set image deployment/"$K8S_DEPLOYMENT" "$K8S_CONTAINER"="$IMAGE_URI" -n "$K8S_NAMESPACE"
 
       - name: Wait for rollout
