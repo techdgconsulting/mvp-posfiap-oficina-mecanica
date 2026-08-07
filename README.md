@@ -906,6 +906,24 @@ Depois de alguns minutos sem carga, o HPA deve estabilizar novamente em `REPLICA
 
 Siga esta ordem. O bucket S3 do backend remoto guarda o state da infraestrutura principal, então ele deve ser distruído somente no final. Se o bucket for apagado antes do `terraform destroy` da pasta `infra`, o Terraform perde o mapa dos recursos e VPC/EKS/RDS podem ficar órfãos na AWS.
 
+##### 15.0 Destroy Automatizado Pela Pipeline
+
+Para mantenedores com GitHub Secrets configurados, o ambiente principal pode ser destruido pela esteira de infraestrutura:
+
+1. Acesse **Actions** no GitHub.
+2. Abra **Infra CI/CD - Terraform AWS**.
+3. Clique em **Run workflow**.
+4. Selecione `action = destroy`.
+5. Confirme a execucao.
+
+Esse modo tenta remover primeiro os recursos Kubernetes da namespace `oficina`, incluindo o Service `oficina-api`, aguarda a remocao dos Load Balancers do Kubernetes e depois executa:
+
+```text
+terraform destroy -auto-approve
+```
+
+O destroy automatizado nao remove o usuario IAM `github-actions-oficina-dgcar` nem os GitHub Secrets. Isso permite recriar o ambiente depois pelo proprio CI/CD.
+
 ##### 15.1 Remover Recursos Kubernetes
 
 Remova primeiro os recursos Kubernetes que podem manter Load Balancer e ENIs ativos na VPC:
