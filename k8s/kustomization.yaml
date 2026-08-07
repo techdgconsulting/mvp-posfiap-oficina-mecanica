@@ -9,5 +9,5 @@ resources:
   - hpa.yaml
 images:
   - name: oficina-api
-    newName: 857145323352.dkr.ecr.us-east-1.amazonaws.com/oficina-dgcar-16soat/oficina-api
+    newName: oficina-api
     newTag: latest
