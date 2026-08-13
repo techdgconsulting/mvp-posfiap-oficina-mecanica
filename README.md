@@ -1277,7 +1277,7 @@ O deploy da aplicação não possui uma ação própria de destroy. Para remover
 
 O diagrama correspondente está em:
 
-- [deploy-flow.puml](./deploy-flow.puml)
+- [`deploy-flow.puml`](./docs/diagramas/infra/deploy-flow.puml)
 
 Para visualizar em VS Code, abra o arquivo `.puml` com suporte a PlantUML.
 
