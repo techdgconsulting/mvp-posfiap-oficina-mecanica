@@ -1,7 +1,9 @@
 # ADR-Infra
 
-## Status
-Aceito
+**Status:** Aceito  
+**Data:** 2026-08-10  
+**Autor:** Diego Gonzalez  
+**Contexto do Projeto:** Sistema de Oficina Mecânica DGCar - Pós-graduação FIAP
 
 ## Contexto
 A aplicação foi preparada para evoluir de um ambiente local para uma execução em nuvem, com foco em reprodutibilidade, segurança, isolamento de segredos e custo controlado. Para isso, a infraestrutura precisa ser tratada como parte do projeto, com decisões explícitas sobre armazenamento de estado, provisionamento de recursos, banco de dados, deploy no Kubernetes e proteção de credenciais.
@@ -33,7 +35,7 @@ A aplicação foi preparada para evoluir de um ambiente local para uma execuçã
 **Decisão:** provisionar a infraestrutura principal na AWS com VPC, EKS, ECR, RDS e grupos de segurança.
 
 **Por quê:**
-- a aplicação precisa de um ambiente controlado para execução em produção acadêmica e demonstração;
+- a aplicação precisa de um ambiente controlado para execução em produção;
 - o EKS oferece um ambiente Kubernetes gerenciado, reduzindo a complexidade operacional;
 - o ECR centraliza a imagem Docker da aplicação;
 - o RDS garante um banco gerenciado e mais confiável do que uma instância local;
@@ -161,5 +163,5 @@ A aplicação foi preparada para evoluir de um ambiente local para uma execuçã
 
 **Consequência:** o projeto pode ser demonstrado sem gerar custo desnecessário após a fase de validação.
 
-## Resumo executivo
-A infraestrutura foi definida para ser segura, reprodutível, automatizada e compatível com uma execução real em AWS. As decisões priorizam a separação entre estado, configuração, deploy e segredos, além de reduzir riscos operacionais e custos. Esse conjunto de escolhas torna a aplicação mais adequada para demonstração acadêmica, validação técnica e evolução futura.
+## Resumo
+A infraestrutura foi definida para ser segura, reprodutível, automatizada e compatível com uma execução real em AWS. As decisões priorizam a separação entre estado, configuração, deploy e segredos, além de reduzir riscos operacionais e custos. Esse conjunto de escolhas torna a aplicação mais adequada para o objetivo acadêmico, validação técnica e evolução futura.

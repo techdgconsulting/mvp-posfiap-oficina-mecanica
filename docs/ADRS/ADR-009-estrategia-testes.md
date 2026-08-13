@@ -27,9 +27,9 @@ Adoção da **pirâmide de testes** com três camadas distintas, usando o stack 
 
 | Métrica | Valor | Fonte |
 |---|---:|---|
-| Classes de teste | 39 | `src/test/**/*.java` |
-| Testes executados | 358 | última execução local de `mvn test` |
-| Cobertura de instruções | 95,09% | `target/site/jacoco/jacoco.csv` |
+| Classes de teste | 47 | `src/test/**/*.java` |
+| Testes executados | 361 | artefatos locais em `target/surefire-reports` |
+| Cobertura de instruções | 96,24% | `target/site/jacoco/jacoco.csv` |
 
 ---
 
@@ -292,7 +292,7 @@ Relatório gerado em: `target/site/jacoco/index.html`
 ### Positivas
 - **Velocidade:** testes de domínio e use cases em < 100 ms por classe (sem I/O)
 - **Isolamento:** cada camada testada sem dependências das camadas superiores
-- **Cobertura alta:** 95,09% de instruções na evidência local atual — detecta regressões com confiança
+- **Cobertura alta:** 96,24% de instruções na evidência local atual — detecta regressões com confiança
 - **RBAC validado:** testes de negação (403) em todas as regras de perfil dos controllers
 - **Relatório de cobertura:** JaCoCo gera HTML a cada `mvn test jacoco:report`
 - **Relatório de testes:** Allure gera dashboard interativo via `allure-report.ps1` (Windows) com agrupamento por Epic/Feature/Story, histórico e tendências

@@ -29,6 +29,7 @@ box "adapters/in/web\nInterface Adapters" #CCF4D6
     participant "VeiculoController" as VeiculoController
     participant "VeiculoWebMapper" as VeiculoWebMapper
     participant "OrdemDeServicoController" as OSController
+    participant "OrcamentoDecisaoClienteController" as DecisaoController
     participant "OrdemDeServicoWebMapper" as OSWebMapper
 end box
 
@@ -244,7 +245,7 @@ else veículo existente de outro cliente
     DB --> VeiculoPersistence: Veículo encontrado
     VeiculoPersistence --> OSCompletaUseCase: Veiculo
     OSCompletaUseCase --> OSController: NegocioException
-    OSController --> RestApi: erro padronizado
+    OSController --> RestApi: erro padronizado\nsem campos sensiveis
     RestApi --> Atendente: 422 Unprocessable Entity
 else veículo inexistente
     DB --> VeiculoPersistence: vazio
@@ -369,6 +370,11 @@ OSController -> OSInputPorts: EnviarNotificacaoOrcamentoInputPort.execute(comman
 OSInputPorts -> DecisaoUseCase: OrcamentoDecisaoClienteUseCase
 DecisaoUseCase -> OSRepoPort: buscarPorId(osId)
 DecisaoUseCase -> OrcamentoRepoPort: buscar ativo por OS
+DecisaoUseCase -> DecisaoRepoPort: listarPorOrcamentoEStatus(orcamentoId, PENDENTE)
+DecisaoRepoPort --> DecisaoUseCase: decisoes pendentes anteriores
+loop Para cada decisao pendente anterior
+    DecisaoUseCase -> DecisaoRepoPort: salvar(decisao EXPIRADA)
+end
 DecisaoUseCase -> TokenPort: gerarToken() e gerarHash(token)
 TokenPort -> SecureTokenAdapter: token opaco e hash SHA-256
 DecisaoUseCase -> DecisaoRepoPort: salvar(decisao com tokenHash e expiracao)
@@ -385,9 +391,16 @@ RestApi --> Atendente: 200 OK\nNotificacao criada
 
 alt decisão externa por token
 ClienteExterno -> RestApi: POST /api/orcamentos/decisoes-cliente/{token}/aprovar
-RestApi -> OSController: OrcamentoDecisaoClienteController
-OSController -> OSInputPorts: AprovarOrcamentoPorTokenInputPort.execute(command)
+RestApi -> DecisaoController: despacha requisição pública\nsem JWT
+note right of RestApi
+  Endpoint público no SecurityConfig.
+  O token opaco não é JWT e não autentica usuário interno.
+end note
+DecisaoController -> OSInputPorts: AprovarOrcamentoPorTokenInputPort.execute(command)
 OSInputPorts -> DecisaoUseCase: validar token, expiracao e uso unico
+DecisaoUseCase -> TokenPort: gerarHash(token)
+TokenPort -> SecureTokenAdapter: SHA-256 do token opaco
+SecureTokenAdapter --> DecisaoUseCase: tokenHash
 DecisaoUseCase -> DecisaoRepoPort: buscarPorTokenHash(hash)
 DecisaoUseCase -> OSUseCase: delega para AprovarOrcamentoInputPort
 else registro interno pela equipe
@@ -424,8 +437,8 @@ OSPersistence -> DB: status EM_EXECUCAO
 alt resposta da decisao externa por token
     OSUseCase --> DecisaoUseCase: OrdemServicoResult
     DecisaoUseCase -> DecisaoRepoPort: salvar(decisao APROVADA)
-    DecisaoUseCase --> OSController: DecisaoOrcamentoClienteResult
-    OSController --> RestApi: DecisaoOrcamentoClienteResponse
+    DecisaoUseCase --> DecisaoController: DecisaoOrcamentoClienteResult
+    DecisaoController --> RestApi: DecisaoOrcamentoClienteResponse
     RestApi --> ClienteExterno: 200 OK\nOrcamento aprovado
 else resposta do registro interno
     OSUseCase --> OSController: OrdemServicoResult
@@ -437,9 +450,16 @@ end
 
 alt decisão externa por token
 ClienteExterno -> RestApi: POST /api/orcamentos/decisoes-cliente/{token}/recusar
-RestApi -> OSController: OrcamentoDecisaoClienteController
-OSController -> OSInputPorts: RecusarOrcamentoPorTokenInputPort.executeRecusar(command)
+RestApi -> DecisaoController: despacha requisição pública\nsem JWT
+note right of RestApi
+  Endpoint público no SecurityConfig.
+  O token opaco não é JWT e não autentica usuário interno.
+end note
+DecisaoController -> OSInputPorts: RecusarOrcamentoPorTokenInputPort.executeRecusar(command)
 OSInputPorts -> DecisaoUseCase: validar token, expiracao e uso unico
+DecisaoUseCase -> TokenPort: gerarHash(token)
+TokenPort -> SecureTokenAdapter: SHA-256 do token opaco
+SecureTokenAdapter --> DecisaoUseCase: tokenHash
 DecisaoUseCase -> DecisaoRepoPort: buscarPorTokenHash(hash)
 DecisaoUseCase -> OSUseCase: delega para RejeitarOrcamentoInputPort
 else registro interno pela equipe
@@ -463,8 +483,8 @@ OSPersistence -> DB: status CANCELADA
 alt resposta da decisao externa por token
     OSUseCase --> DecisaoUseCase: OrdemServicoResult
     DecisaoUseCase -> DecisaoRepoPort: salvar(decisao RECUSADA)
-    DecisaoUseCase --> OSController: DecisaoOrcamentoClienteResult
-    OSController --> RestApi: DecisaoOrcamentoClienteResponse
+    DecisaoUseCase --> DecisaoController: DecisaoOrcamentoClienteResult
+    DecisaoController --> RestApi: DecisaoOrcamentoClienteResponse
     RestApi --> ClienteExterno: 200 OK\nOrcamento recusado
 else resposta do registro interno
     OSUseCase --> OSController: OrdemServicoResult
@@ -497,8 +517,8 @@ OSInputPorts -> OSUseCase: OrdemDeServicoUseCase
 OSUseCase -> OSRepoPort: buscarPorId(osId)
 OSRepoPort --> OSUseCase: OrdemDeServico finalizada
 OSUseCase -> Pagamento: criar pagamento pendente
-OSUseCase -> PagamentoGatewayPort: processar(pagamento)
-PagamentoGatewayPort -> GatewayAdapter: processar(pagamento)
+OSUseCase -> PagamentoGatewayPort: processar(GatewayRequest)
+PagamentoGatewayPort -> GatewayAdapter: processar(GatewayRequest)
 GatewayAdapter --> OSUseCase: GatewayResponse
 
 alt pagamento aprovado
@@ -519,7 +539,7 @@ else pagamento recusado
     PagamentoRepoPort -> PagamentoPersistence: salvar(pagamento)
     PagamentoPersistence -> DB: persistir pagamento recusado
     OSUseCase --> OSController: NegocioException
-    OSController --> RestApi: erro padronizado
+    OSController --> RestApi: erro padronizado\nsem campos sensiveis
     RestApi --> Atendente: 422 Unprocessable Entity
 end
 

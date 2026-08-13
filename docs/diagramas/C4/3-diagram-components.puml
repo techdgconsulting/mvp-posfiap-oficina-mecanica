@@ -12,7 +12,7 @@ title Diagrama de Componentes — API Oficina Mecânica DGCar [C4 — Nível 3]
 Person(atendente, "Atendente", "Perfil ATENDENTE. Gerencia clientes, veículos, OS, orçamentos, pagamentos e entregas.")
 Person(mecanico, "Mecânico", "Perfil MECANICO. Executa diagnóstico, adiciona itens e finaliza serviços.")
 Person(gestor, "Gestor", "Perfil GESTOR. Acesso completo, incluindo cadastros, KPIs e operações administrativas.")
-Person(cliente, "Cliente", "Consulta status da OS sem login. Aprovação ou rejeição é registrada por perfil autorizado.")
+Person(cliente, "Cliente", "Consulta status da OS sem login e aprova ou recusa orçamento por link público com token.")
 
 System_Ext(viacep, "ViaCEP API", "Serviço público para consulta de endereço por CEP.")
 System_Ext(gatewayExt, "Gateway de Pagamento", "Processa e autoriza pagamentos. No projeto, a integração é representada por adapter simulável.")
@@ -27,6 +27,8 @@ Container_Boundary(api, "API Spring Boot — Oficina Mecânica") {
         Component(coreCtrls, "Controllers REST", "adapters.in.web.controller", "Cliente, Veiculo, Peca, Servico e OrdemDeServico expostos por HTTP.")
         Component(webDtos, "Requests, Responses e Web Mappers", "adapters.in.web.request/response/mapper", "Convertem payloads HTTP em commands e results da aplicação.")
         Component(exHandler, "GlobalExceptionHandler", "adapters.in.web.controller", "Traduz exceções de aplicação e domínio em respostas HTTP padronizadas.")
+        Component(errorCtrl, "SanitizedErrorController", "adapters.in.web.controller", "Trata o fallback /error com payload sanitizado, sem path, error, exception ou trace.")
+        Component(apiErrorResponse, "ApiErrorResponse", "adapters.in.web.response", "Contrato comum de erro: timestamp, status e erro.")
     }
 
     Boundary(application, "Application") {
@@ -75,11 +77,12 @@ Rel(mecanico, authCtrl, "Login", "JSON/HTTPS")
 Rel(mecanico, coreCtrls, "Diagnóstico, itens e finalização de serviço", "JSON/HTTPS")
 Rel(gestor, authCtrl, "Login e registro", "JSON/HTTPS")
 Rel(gestor, coreCtrls, "Acesso completo a cadastros, KPIs e OS", "JSON/HTTPS")
-Rel(cliente, coreCtrls, "Consulta status da OS sem login", "JSON/HTTPS")
+Rel(cliente, coreCtrls, "Consulta status da OS e envia decisão de orçamento por token", "JSON/HTTPS")
 
 ' Fluxo de entrada
 Rel(authCtrl, webDtos, "Mapeia requests e responses")
 Rel(coreCtrls, webDtos, "Mapeia requests e responses")
+Rel(errorCtrl, apiErrorResponse, "Retorna erro sanitizado")
 Rel(authCtrl, inputPorts, "Invoca contratos de autenticação")
 Rel(coreCtrls, inputPorts, "Invoca contratos dos casos de uso")
 Rel(coreCtrls, criarOSPort, "Abre OS por IDs")
@@ -89,6 +92,8 @@ Rel(coreCtrls, decisaoOrcamentoPorts, "Dispara notificacao e recebe decisao por 
 Rel(useCases, notificacaoStatusPort, "Aciona notificacao apos mudanca de status")
 Rel(webDtos, criarOSCompletaCommand, "Mapeia request completo")
 Rel(exHandler, coreCtrls, "Padroniza erros HTTP")
+Rel(exHandler, apiErrorResponse, "Usa contrato de erro sanitizado")
+Rel(securityConfig, apiErrorResponse, "Escreve 401/403 em JSON")
 
 ' Application e domínio
 Rel(inputPorts, useCases, "Implementados por")

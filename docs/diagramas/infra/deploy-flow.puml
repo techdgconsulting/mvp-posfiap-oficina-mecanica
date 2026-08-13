@@ -4,70 +4,80 @@ skinparam backgroundColor #F8FAFC
 skinparam shadowing false
 skinparam ArrowColor #1F2937
 skinparam defaultTextAlignment center
-skinparam componentStyle rectangle
-skinparam packageStyle rectangle
+skinparam activity {
+  BackgroundColor #FFFFFF
+  BorderColor #1F2937
+  FontColor #111827
+  DiamondBackgroundColor #EEF2FF
+  DiamondBorderColor #4338CA
+}
 
-left to right direction
+title Fluxo CI/CD - Infraestrutura, Destroy e Aplicacao
 
-actor "Developer / Maintainer" as dev
-rectangle "GitHub Repository" as repo
-rectangle "Infra Workflow\ninfra.yml" as infraWorkflow
-rectangle "App Workflow\napp-cd.yml" as appWorkflow
-rectangle "Terraform" as tf
-rectangle "S3 State Backend" as s3
-rectangle "AWS" as aws
-rectangle "VPC / EKS / RDS / ECR / IAM" as infra
-rectangle "Docker Build" as docker
-rectangle "Amazon ECR" as ecr
-rectangle "Kubernetes Cluster" as eks
-rectangle "Namespace oficina" as ns
-rectangle "ConfigMap + Secret" as k8sconf
-rectangle "Deployment oficina-api" as deploy
-rectangle "Service LoadBalancer" as svc
-rectangle "Swagger / API" as api
+start
 
-dev --> repo : push / merge / dispatch
-repo --> infraWorkflow : infra/** ou dispatch manual
-repo --> appWorkflow : src / k8s / Dockerfile / pom.xml
+partition "GitHub / Mantenedor" {
+  :1. Push, merge ou execucao manual;
+}
 
-infraWorkflow --> s3 : cria/garante backend
-infraWorkflow --> tf : terraform init / plan / apply
-tf --> s3 : read/write state
-s3 --> tf : terraform.tfstate remote
-tf --> infra : provisiona infraestrutura
-infra --> aws : VPC, EKS, RDS, ECR, IAM
+partition "Pipeline de Infraestrutura - infra.yml" {
+  :2. Checkout do repositorio;
+  :3. Configurar Terraform e credenciais AWS;
 
-appWorkflow --> tf : terraform output
-tf --> s3 : read state
-s3 --> appWorkflow : ECR, EKS, JDBC URL
+  if (Acao = apply?) then (sim)
+    :4. Criar ou garantir o backend remoto do Terraform;
+    note right
+      Bootstrap do backend.
+      Executado apenas no apply.
+      Garante que o bucket S3 do state exista.
+    end note
 
-appWorkflow --> docker : mvn test + docker build
-docker --> ecr : push image versionada
-appWorkflow --> eks : aws eks update-kubeconfig
-appWorkflow --> ns : create namespace
-appWorkflow --> k8sconf : create/update config e secret
-appWorkflow --> deploy : kubectl apply -k k8s
-deploy --> eks : deployment oficina-api
-deploy --> svc : expoe API via LoadBalancer
-svc --> api : http://host/swagger-ui.html
+    :5. Gerar backend.tf apontando para o S3;
+    note right
+      Este arquivo apenas configura
+      onde esta o state remoto.
+    end note
+    :6. Gerar terraform.tfvars da execucao;
+    :7. Executar terraform init e validate;
+    :8. Executar terraform plan;
+    :9. Executar terraform apply;
+    :10. Provisionar VPC, EKS, RDS, ECR, IAM e Security Groups;
+    :11. Publicar outputs da infraestrutura;
 
-api --> aws : acesso ao banco no RDS via JDBC
-aws --> infra : RDS PostgreSQL
+  else (destroy)
+    :4. Gerar backend.tf apontando para o S3 existente;
+    note right
+      No destroy nao se cria o backend.
+      O arquivo e gerado para permitir
+      terraform init e leitura do state remoto.
+    end note
+    :5. Gerar terraform.tfvars da execucao;
+    :6. Executar terraform init;
+    :7. Ler outputs existentes no state remoto;
+    :8. Remover recursos Kubernetes dependentes;
+    :9. Executar terraform destroy;
+    stop
+  endif
+}
 
-note right of infraWorkflow
-  Infra workflow:
-  1) prepara S3 backend
-  2) executa Terraform
-  3) cria/atualiza AWS
-end note
+partition "Pipeline da Aplicacao - app-cd.yml" {
+  :12. Push de codigo da aplicacao ou execucao manual;
+  :13. Executar build e testes com Maven;
+  :14. Gerar backend.tf para ler outputs da infra;
+  :15. Ler outputs do Terraform no state remoto;
+  :16. Validar ECR, EKS e URL JDBC recebidos da infra;
+  :17. Buildar imagem Docker versionada pelo commit;
+  :18. Publicar imagem no Amazon ECR;
+  :19. Atualizar kubeconfig do EKS;
+  :20. Criar ou atualizar namespace Kubernetes;
+  :21. Criar ou atualizar Secret da aplicacao;
+  :22. Preparar ConfigMap e Kustomize com outputs da infra;
+  :23. Aplicar manifestos Kubernetes;
+  :24. Atualizar imagem do Deployment oficina-api;
+  :25. Aguardar rollout dos pods;
+  :26. Atualizar URL publica com hostname do LoadBalancer;
+  :27. Expor Swagger e API via Service LoadBalancer;
+}
 
-note right of appWorkflow
-  App workflow:
-  1) testa app
-  2) le outputs da infra
-  3) constroi imagem
-  4) publica no ECR
-  5) aplica Kubernetes
-  6) atualiza deployment
-end note
+stop
 @enduml

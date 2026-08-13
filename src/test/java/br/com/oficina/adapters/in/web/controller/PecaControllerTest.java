@@ -200,7 +200,13 @@ class PecaControllerTest {
     @Story("Rejeitar acesso sem autenticacao")
     void semAutenticacao_retorna401() throws Exception {
         mockMvc.perform(get("/api/pecas"))
-            .andExpect(status().isUnauthorized());
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.status").value(401))
+            .andExpect(jsonPath("$.erro").value("Nao autorizado"))
+            .andExpect(jsonPath("$.path").doesNotExist())
+            .andExpect(jsonPath("$.error").doesNotExist())
+            .andExpect(jsonPath("$.exception").doesNotExist())
+            .andExpect(jsonPath("$.trace").doesNotExist());
     }
 
     @Test
@@ -247,6 +253,12 @@ class PecaControllerTest {
     @Story("Atendente nao pode gerir pecas")
     void atendenteNaoPodeGerirPecas_retorna403() throws Exception {
         mockMvc.perform(get("/api/pecas"))
-            .andExpect(status().isForbidden());
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.status").value(403))
+            .andExpect(jsonPath("$.erro").value("Acesso negado"))
+            .andExpect(jsonPath("$.path").doesNotExist())
+            .andExpect(jsonPath("$.error").doesNotExist())
+            .andExpect(jsonPath("$.exception").doesNotExist())
+            .andExpect(jsonPath("$.trace").doesNotExist());
     }
 }

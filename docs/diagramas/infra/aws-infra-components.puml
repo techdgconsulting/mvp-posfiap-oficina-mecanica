@@ -1,0 +1,59 @@
+@startuml aws-infra-components
+!theme plain
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam ArrowColor #1F2937
+skinparam defaultTextAlignment center
+
+left to right direction
+
+title Infraestrutura AWS provisionada - High Level
+
+actor "Mantenedor / GitHub Actions" as maintainer
+
+cloud "AWS" {
+  database "Amazon S3\nTerraform State" as s3
+  rectangle "IAM\nRoles e permissoes" as iam
+  rectangle "Amazon ECR\nImagem Docker" as ecr
+
+  package "VPC" {
+    rectangle "Subnets Publicas\nEKS Nodes + Load Balancer" as publicSubnets
+    rectangle "Subnets Privadas\nRDS PostgreSQL" as privateSubnets
+    rectangle "Security Groups" as securityGroups
+
+    rectangle "Amazon EKS\nCluster + Managed Node Group" as eks
+    rectangle "Kubernetes\noficina-api + Service + HPA" as k8s
+    database "Amazon RDS\nPostgreSQL 16" as rds
+  }
+}
+
+maintainer --> s3 : cria/usa state remoto
+maintainer --> iam : usa credenciais AWS
+maintainer --> ecr : publica imagem
+maintainer --> eks : provisiona cluster
+
+s3 --> eks : Terraform state
+s3 --> rds : Terraform state
+s3 --> ecr : Terraform state
+
+iam --> eks : permissoes
+iam --> ecr : permissoes
+
+ecr --> k8s : imagem da API
+eks --> k8s : executa workloads
+k8s --> rds : JDBC 5432
+
+publicSubnets --> eks
+publicSubnets --> k8s
+privateSubnets --> rds
+securityGroups --> eks
+securityGroups --> rds
+
+note bottom
+  Visao high level dos recursos AWS criados pelo Terraform.
+  O S3 do state remoto e criado pelo bootstrap e destruido separadamente.
+end note
+
+@enduml

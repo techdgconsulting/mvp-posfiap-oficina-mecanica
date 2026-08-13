@@ -190,7 +190,11 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(get("/test-exceptions/generico"))
             .andExpect(status().isInternalServerError())
             .andExpect(jsonPath("$.status").value(500))
-            .andExpect(jsonPath("$.erro").value("Erro interno do servidor"));
+            .andExpect(jsonPath("$.erro").value("Erro interno do servidor"))
+            .andExpect(jsonPath("$.path").doesNotExist())
+            .andExpect(jsonPath("$.error").doesNotExist())
+            .andExpect(jsonPath("$.exception").doesNotExist())
+            .andExpect(jsonPath("$.trace").doesNotExist());
     }
 
     @Test

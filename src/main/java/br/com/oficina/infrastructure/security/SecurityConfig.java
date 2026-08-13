@@ -1,8 +1,13 @@
 package br.com.oficina.infrastructure.security;
 
+import br.com.oficina.adapters.in.web.response.ApiErrorResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -24,6 +29,7 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -90,9 +96,9 @@ public class SecurityConfig {
             // 401 para requests sem autenticação, 403 para autenticado sem permissão
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) ->
-                    response.sendError(HttpStatus.UNAUTHORIZED.value(), "Não autorizado"))
+                    writeError(response, HttpStatus.UNAUTHORIZED, "Nao autorizado"))
                 .accessDeniedHandler((request, response, accessDeniedException) ->
-                    response.sendError(HttpStatus.FORBIDDEN.value(), "Acesso negado")))
+                    writeError(response, HttpStatus.FORBIDDEN, "Acesso negado")))
             // pra funcionar o h2-console
             .headers(headers -> headers.frameOptions(fo -> fo.sameOrigin()));
 
@@ -107,5 +113,12 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+
+    private void writeError(HttpServletResponse response, HttpStatus status, String message) throws IOException {
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+        objectMapper.writeValue(response.getWriter(), ApiErrorResponse.of(status, message));
     }
 }
