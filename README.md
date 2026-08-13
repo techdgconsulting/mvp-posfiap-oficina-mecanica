@@ -950,11 +950,13 @@ Para mantenedores com GitHub Secrets configurados, o ambiente principal pode ser
 4. Selecione `action = destroy`.
 5. Confirme a execução.
 
-Esse modo tenta remover primeiro os recursos Kubernetes da namespace `oficina`, incluindo o Service `oficina-api`, aguarda a remoção dos Load Balancers do Kubernetes e depois executa:
+Esse modo tenta remover primeiro os recursos Kubernetes da namespace `oficina`, incluindo o Service `oficina-api`. Em seguida, a pipeline consulta o `vpc_id` do state remoto e limpa dependencias AWS que podem ser criadas pelo Service Kubernetes do tipo `LoadBalancer`, como Classic Load Balancer, ELBv2, ENIs gerenciadas por `amazon-elb` e security groups orfaos com prefixo `k8s-elb-*`. Depois dessa etapa, executa:
 
 ```text
 terraform destroy -auto-approve
 ```
+
+Essa limpeza evita falhas intermitentes de `DependencyViolation` ao remover subnets, Internet Gateway e VPC. Esses erros podem acontecer porque o Kubernetes solicita a exclusao do Load Balancer, mas a AWS remove ELB, ENIs e security groups de forma assincrona.
 
 O destroy automatizado não remove o usuário IAM `github-actions-oficina-dgcar` nem os GitHub Secrets. Isso permite recriar o ambiente depois pelo próprio CI/CD.
 
@@ -1189,7 +1191,8 @@ Existe uma diferença importante entre duas coisas parecidas:
 6. A pipeline executa `terraform init` para acessar o state remoto.
 7. A pipeline lê outputs existentes, como nome do cluster EKS.
 8. A pipeline remove recursos Kubernetes dependentes, como Service e namespace.
-9. A pipeline executa `terraform destroy`.
+9. A pipeline limpa dependencias AWS criadas pelo Service `LoadBalancer`, como Classic ELB, ELBv2, ENIs e security groups `k8s-elb-*`.
+10. A pipeline executa `terraform destroy`.
 
 ### Como Destruir No GitHub
 

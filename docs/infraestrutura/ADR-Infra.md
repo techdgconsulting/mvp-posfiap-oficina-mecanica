@@ -163,5 +163,16 @@ A aplicação foi preparada para evoluir de um ambiente local para uma execuçã
 
 **Consequência:** o projeto pode ser demonstrado sem gerar custo desnecessário após a fase de validação.
 
+### 14. Limpeza de dependencias Kubernetes no destroy
+**Decisao:** fortalecer o destroy automatizado da esteira de infraestrutura para remover dependencias AWS criadas indiretamente pelo Kubernetes antes do `terraform destroy`.
+
+**Por que:**
+- Services Kubernetes do tipo `LoadBalancer` podem criar Classic Load Balancer, ELBv2, ENIs e security groups na AWS fora do controle direto do Terraform state;
+- a exclusao desses recursos e assincrona e pode continuar em andamento mesmo depois de `kubectl delete service` ou `kubectl delete namespace`;
+- se o Terraform tentar remover subnets, Internet Gateway ou VPC antes dessa limpeza terminar, a AWS pode retornar `DependencyViolation`;
+- a esteira precisa ser resiliente tanto para ambientes criados por CI/CD quanto para ambientes criados manualmente usando o mesmo state remoto.
+
+**Consequencia:** antes do `terraform destroy`, a pipeline consulta o `vpc_id` no state remoto, remove recursos Kubernetes, aguarda Load Balancers e ENIs gerenciadas por `amazon-elb` serem removidos e exclui security groups orfaos com prefixo `k8s-elb-*`. Isso reduz falhas intermitentes no teardown e evita limpeza manual no Console AWS.
+
 ## Resumo
 A infraestrutura foi definida para ser segura, reprodutível, automatizada e compatível com uma execução real em AWS. As decisões priorizam a separação entre estado, configuração, deploy e segredos, além de reduzir riscos operacionais e custos. Esse conjunto de escolhas torna a aplicação mais adequada para o objetivo acadêmico, validação técnica e evolução futura.

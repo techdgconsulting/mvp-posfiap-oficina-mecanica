@@ -54,8 +54,10 @@ partition "Pipeline de Infraestrutura - infra.yml" {
     :5. Gerar terraform.tfvars da execucao;
     :6. Executar terraform init;
     :7. Ler outputs existentes no state remoto;
-    :8. Remover recursos Kubernetes dependentes;
-    :9. Executar terraform destroy;
+    :8. Remover Service e namespace Kubernetes;
+    :9. Limpar Classic ELB, ELBv2 e ENIs de LoadBalancer;
+    :10. Remover security groups orfaos k8s-elb;
+    :11. Executar terraform destroy;
     stop
   endif
 }

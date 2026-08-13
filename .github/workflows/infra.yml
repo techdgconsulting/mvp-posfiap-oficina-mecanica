@@ -186,28 +186,92 @@ jobs:
         continue-on-error: true
         run: |
           echo "eks_cluster_name=$(terraform output -raw eks_cluster_name)" >> "$GITHUB_OUTPUT"
+          echo "vpc_id=$(terraform output -raw vpc_id)" >> "$GITHUB_OUTPUT"
 
       - name: Delete Kubernetes resources before destroy
         if: env.TF_ACTION == 'destroy' && steps.destroy-outputs.outputs.eks_cluster_name != ''
         continue-on-error: true
         env:
           EKS_CLUSTER_NAME: ${{ steps.destroy-outputs.outputs.eks_cluster_name }}
+          VPC_ID: ${{ steps.destroy-outputs.outputs.vpc_id }}
         run: |
-          aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
+          set -u
 
-          kubectl delete service oficina-api -n "$K8S_NAMESPACE" --ignore-not-found=true
-          kubectl delete namespace "$K8S_NAMESPACE" --ignore-not-found=true
+          if aws eks describe-cluster --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME" >/dev/null 2>&1; then
+            aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
 
-          for attempt in $(seq 1 30); do
-            LOAD_BALANCERS="$(aws elbv2 describe-load-balancers --region "$AWS_REGION" --query 'LoadBalancers[?contains(LoadBalancerName, `k8s-oficina`) == `true`].LoadBalancerArn' --output text)"
+            kubectl delete service oficina-api -n "$K8S_NAMESPACE" --ignore-not-found=true
+            kubectl delete namespace "$K8S_NAMESPACE" --ignore-not-found=true
 
-            if [ -z "$LOAD_BALANCERS" ]; then
-              echo "Kubernetes LoadBalancers removed."
+            for attempt in $(seq 1 30); do
+              if ! kubectl get namespace "$K8S_NAMESPACE" >/dev/null 2>&1; then
+                echo "Kubernetes namespace removed."
+                break
+              fi
+
+              echo "Waiting for Kubernetes namespace removal... attempt $attempt/30"
+              sleep 10
+            done
+          else
+            echo "EKS cluster is not available. Skipping Kubernetes API cleanup and checking AWS load balancer dependencies by VPC."
+          fi
+
+          classic_load_balancers() {
+            aws elb describe-load-balancers --region "$AWS_REGION" --output json \
+              | python3 -c 'import json, os, sys; vpc_id = os.environ.get("VPC_ID"); print("\n".join(lb.get("LoadBalancerName") for lb in json.load(sys.stdin).get("LoadBalancerDescriptions", []) if lb.get("VPCId") == vpc_id))'
+          }
+
+          elbv2_load_balancers() {
+            aws elbv2 describe-load-balancers --region "$AWS_REGION" --output json \
+              | python3 -c 'import json, os, sys; vpc_id = os.environ.get("VPC_ID"); print("\n".join(lb.get("LoadBalancerArn") for lb in json.load(sys.stdin).get("LoadBalancers", []) if lb.get("VpcId") == vpc_id))'
+          }
+
+          elb_network_interface_count() {
+            aws ec2 describe-network-interfaces \
+              --region "$AWS_REGION" \
+              --filters "Name=vpc-id,Values=$VPC_ID" \
+              --output json \
+              | python3 -c 'import json, sys; interfaces = json.load(sys.stdin).get("NetworkInterfaces", []); print(sum(1 for eni in interfaces if eni.get("RequesterId") == "amazon-elb" or eni.get("Description", "").startswith("ELB ")))'
+          }
+
+          k8s_elb_security_groups() {
+            aws ec2 describe-security-groups \
+              --region "$AWS_REGION" \
+              --filters "Name=vpc-id,Values=$VPC_ID" \
+              --output json \
+              | python3 -c 'import json, sys; print("\n".join(sg.get("GroupId") for sg in json.load(sys.stdin).get("SecurityGroups", []) if sg.get("GroupName", "").startswith("k8s-elb-")))'
+          }
+
+          for lb_name in $(classic_load_balancers); do
+            echo "Deleting Classic Load Balancer: $lb_name"
+            aws elb delete-load-balancer --region "$AWS_REGION" --load-balancer-name "$lb_name"
+          done
+
+          for lb_arn in $(elbv2_load_balancers); do
+            echo "Deleting ELBv2 Load Balancer: $lb_arn"
+            aws elbv2 delete-load-balancer --region "$AWS_REGION" --load-balancer-arn "$lb_arn"
+          done
+
+          for attempt in $(seq 1 40); do
+            CLASSIC_LBS="$(classic_load_balancers)"
+            ELBV2_LBS="$(elbv2_load_balancers)"
+            ELB_ENI_COUNT="$(elb_network_interface_count)"
+
+            if [ -z "$CLASSIC_LBS" ] && [ -z "$ELBV2_LBS" ] && [ "$ELB_ENI_COUNT" = "0" ]; then
+              echo "Kubernetes Load Balancer dependencies removed."
               break
             fi
 
-            echo "Waiting for Kubernetes LoadBalancers to be removed... attempt $attempt/30"
-            sleep 10
+            echo "Waiting for Load Balancer cleanup... attempt $attempt/40"
+            echo "Classic LBs: ${CLASSIC_LBS:-none}"
+            echo "ELBv2 LBs: ${ELBV2_LBS:-none}"
+            echo "ELB ENIs: $ELB_ENI_COUNT"
+            sleep 15
+          done
+
+          for sg_id in $(k8s_elb_security_groups); do
+            echo "Deleting orphan Kubernetes ELB security group: $sg_id"
+            aws ec2 delete-security-group --region "$AWS_REGION" --group-id "$sg_id" || true
           done
 
       - name: Terraform destroy
