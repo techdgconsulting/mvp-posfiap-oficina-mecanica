@@ -381,6 +381,40 @@ A URL completa será semelhante a:
 
 #### 5. Configurar Kubectl Para O EKS
 
+Antes de usar `kubectl`, libere o usuario AWS atual no controle de acesso do EKS. Esse passo e necessario para deploy manual pelo terminal, porque criar o cluster via Terraform nao garante, por si so, permissao Kubernetes para o usuario que esta executando os comandos.
+
+```bash
+AWS_REGION="us-east-1"
+CLUSTER_NAME="oficina-dgcar-16soat-development-eks"
+CURRENT_USER_ARN=$(aws sts get-caller-identity --query Arn --output text)
+
+if ! aws eks list-access-entries \
+  --region "$AWS_REGION" \
+  --cluster-name "$CLUSTER_NAME" \
+  --query "accessEntries[?@=='$CURRENT_USER_ARN']" \
+  --output text | grep -q "$CURRENT_USER_ARN"; then
+  aws eks create-access-entry \
+    --region "$AWS_REGION" \
+    --cluster-name "$CLUSTER_NAME" \
+    --principal-arn "$CURRENT_USER_ARN" \
+    --type STANDARD
+fi
+
+if ! aws eks list-associated-access-policies \
+  --region "$AWS_REGION" \
+  --cluster-name "$CLUSTER_NAME" \
+  --principal-arn "$CURRENT_USER_ARN" \
+  --query "associatedAccessPolicies[?policyArn=='arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy'].policyArn" \
+  --output text | grep -q "AmazonEKSClusterAdminPolicy"; then
+  aws eks associate-access-policy \
+    --region "$AWS_REGION" \
+    --cluster-name "$CLUSTER_NAME" \
+    --principal-arn "$CURRENT_USER_ARN" \
+    --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+    --access-scope type=cluster
+fi
+```
+
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name oficina-dgcar-16soat-development-eks
 kubectl get nodes
