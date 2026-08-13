@@ -23,6 +23,7 @@
         <allure.version>2.27.0</allure.version>
         <jackson-bom.version>2.22.0</jackson-bom.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
+        <postgresql.version>42.7.12</postgresql.version>
     </properties>
 
     <dependencies>

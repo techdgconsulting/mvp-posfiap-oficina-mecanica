@@ -4,10 +4,11 @@
 
 | Termo | Definição | Perfil (RBAC) |
 |-------|-----------|---------------|
-| **Cliente** | Pessoa física (CPF) ou jurídica (CNPJ) que solicita serviços na oficina. Pode consultar status da OS publicamente sem login. | Público (sem token) |
+| **Cliente** | Pessoa física (CPF) ou jurídica (CNPJ) que solicita serviços na oficina. Pode consultar status da OS publicamente sem login e decidir orçamento por link público com token opaco. | Público sem JWT; usa token opaco apenas para decisão de orçamento |
 | **Atendente** | Profissional que recebe o cliente, cadastra clientes e veículos, cria ordens de serviço, gera e gerencia orçamentos, registra pagamentos e entrega o veículo. | `ATENDENTE` |
 | **Mecânico** | Profissional que realiza diagnóstico técnico, adiciona peças/serviços à OS e finaliza a execução. | `MECANICO` |
 | **Gestor** | Responsável por todas as operações do sistema: inclui tudo que Atendente e Mecânico fazem, mais CRUD de peças/serviços e KPIs (listagem, filtros, métricas). | `GESTOR` |
+| **Usuário** | Pessoa interna da oficina autenticada no sistema. Possui credenciais e um perfil de acesso usado no RBAC. | `ATENDENTE`, `MECANICO` ou `GESTOR` |
 
 ---
 
@@ -22,8 +23,9 @@
 | **Peça** | Aggregate Root | Material físico com controle de estoque (quantidade disponível e estoque mínimo configurável por peça). Permite baixa, reposição e alerta de estoque baixo. | Estoque |
 | **Serviço** | Aggregate Root | Tipo de trabalho oferecido pela oficina com valor tabelado e tempo estimado em minutos. | Catálogo de Serviços |
 | **Orçamento** | Aggregate Root | Proposta de valor gerada automaticamente a partir dos itens da OS. Enviada ao cliente para aprovação. Possui validade. | Orçamento |
-| **Decisão Externa de Orçamento** | Aggregate / Controle de Processo | Solicitação enviada ao cliente por e-mail para aprovar ou recusar orçamento usando token opaco, expiração e uso único. | Orçamento |
+| **Decisão Externa de Orçamento** | Entity / Controle de Processo | Solicitação enviada ao cliente por e-mail para aprovar ou recusar orçamento usando token opaco, expiração e uso único. | Orçamento |
 | **Token de Decisão** | Value / Credencial temporária | Identificador opaco gerado para decisão externa. Apenas o hash é persistido; o token em texto claro aparece somente no link enviado ao cliente. | Segurança / Orçamento |
+| **Token JWT** | Credencial de autenticação | Token assinado usado por usuários internos para autenticação stateless e autorização por perfil. Transporta o username e o perfil do usuário. | Autenticação e Segurança |
 | **Notificação de Status da OS** | Controle de Processo | Comunicação informativa enviada ao e-mail cadastrado do cliente após mudanças relevantes no status da Ordem de Serviço. | Ordem de Serviço |
 | **Execução** | Aggregate Root | Fase em que os serviços aprovados são realizados no veículo. Contém diagnóstico e período de execução. | Execução |
 | **Diagnóstico** | Entity | Avaliação técnica feita pelo mecânico. Pode identificar problemas adicionais que geram novo orçamento. | Execução |
@@ -31,6 +33,7 @@
 | **Gateway de Pagamento** | Porta de Aplicação / Output Port | Integração externa abstraída por `PagamentoGatewayPort` em `application.port.out`. A implementação atual é `MockPagamentoGatewayAdapter` em `adapters.out.payment`, simulando aprovação ou recusa de cobranças. Substituível por Stripe, Mercado Pago ou outro provedor real. | Financeiro |
 | **Entrega** | Aggregate Root | Liberação e devolução do veículo ao cliente após pagamento aprovado. | Entrega |
 | **Encerramento** | Aggregate Root | Fechamento definitivo da OS após a entrega do veículo. | Encerramento |
+| **Usuário** | Aggregate Root | Conta interna usada para login, emissão de JWT e controle de acesso por perfil. | Autenticação e Segurança |
 
 ---
 
@@ -42,6 +45,7 @@
 | **Placa** | Identificador do veículo no formato Mercosul. | Regex: 3 letras + 1 dígito + 1 letra + 2 dígitos (ABC1D23). |
 | **Quantidade** | Número de unidades em estoque. Imutável. | Deve ser >= 0. Operações retornam nova instância. `subtrair` exige disponibilidade. |
 | **Período de Execução** | Intervalo de tempo (início e fim) da execução do serviço. | Início obrigatório. Fim preenchido ao finalizar. Calcula duração. |
+| **Perfil de Usuário** | Perfil de acesso interno usado para RBAC. | Deve ser `ATENDENTE`, `MECANICO` ou `GESTOR`. |
 
 ---
 
@@ -69,6 +73,15 @@
 | `APROVADO` | Cliente aceitou — dispara execução e baixa no estoque |
 | `REJEITADO` | Cliente recusou — OS é cancelada |
 | `EXPIRADO` | Prazo de validade venceu |
+
+### Status da Decisão do Cliente
+
+| Status | Significado |
+|--------|-------------|
+| `PENDENTE` | Solicitação criada e ainda sem resposta válida do cliente |
+| `APROVADA` | Cliente aprovou o orçamento pelo token público |
+| `RECUSADA` | Cliente recusou o orçamento pelo token público |
+| `EXPIRADA` | Token ultrapassou o prazo de validade antes da decisão |
 
 ### Status da Execução
 

@@ -40,6 +40,9 @@ build/
 k8s/secret.local.yaml
 docs/fase-2/
 
+### Local artifacts / scanner outputs ###
+*.tar
+
 ### Terraform ###
 .terraform/
 *.tfstate

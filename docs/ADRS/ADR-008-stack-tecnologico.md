@@ -188,6 +188,31 @@ O projeto exige uma plataforma backend consolidada, com suporte a DDD tático, p
 
 ---
 
+### 12. Infraestrutura e Deploy: Terraform, Kubernetes, AWS e GitHub Actions
+
+**Decisão:** manter a definição de infraestrutura e deploy versionada no repositório, usando Terraform para provisionamento AWS, Kubernetes para execução da aplicação, Amazon EKS como cluster gerenciado, Amazon ECR para imagens Docker, Amazon RDS PostgreSQL para banco gerenciado, Amazon S3 para backend remoto do Terraform state e GitHub Actions para CI/CD.
+
+> As decisões detalhadas de infraestrutura, ordem de criação, backend remoto, deploy no EKS e destruição controlada estão documentadas em [`docs/infraestrutura/ADR-Infra.md`](../infraestrutura/ADR-Infra.md).
+
+**Justificativas:**
+- Terraform permite provisionamento reprodutível da infraestrutura AWS.
+- Kubernetes/EKS padroniza execução, exposição, health checks e escalabilidade da aplicação.
+- ECR centraliza imagens Docker versionadas e consumidas pelo cluster.
+- RDS PostgreSQL aproxima o ambiente em nuvem do banco relacional principal definido na ADR-003.
+- S3 como backend remoto preserva o `terraform.tfstate` entre execuções locais e pipelines.
+- GitHub Actions separa infraestrutura (`infra.yml`) e aplicação (`app-cd.yml`), evitando que commits de código executem `terraform apply` automaticamente.
+
+**Configuração atual:**
+- Terraform `>= 1.6.0`
+- Provider AWS `~> 5.0`
+- Cluster Kubernetes gerenciado por Amazon EKS
+- Imagem Docker publicada no Amazon ECR
+- Banco da aplicação em Amazon RDS PostgreSQL
+- State remoto do Terraform em Amazon S3
+- CI/CD com GitHub Actions
+
+---
+
 ## Resumo do Stack
 
 | Camada | Tecnologia | Versão |
@@ -209,3 +234,7 @@ O projeto exige uma plataforma backend consolidada, com suporte a DDD tático, p
 | Testes Integração | Testcontainers | Declarado para evolução futura |
 | E-mail | Spring Mail / SMTP | (managed) |
 | Containerização | Docker / Docker Compose | (ADR-006) |
+| Infraestrutura como Código | Terraform + AWS Provider | Terraform >= 1.6.0 / AWS Provider ~> 5.0 |
+| Kubernetes | Kubernetes + Amazon EKS + Kustomize | (ADR-Infra) |
+| Cloud AWS | EKS, ECR, RDS PostgreSQL, S3, IAM, VPC e Security Groups | (ADR-Infra) |
+| CI/CD | GitHub Actions | `infra.yml` + `app-cd.yml` |

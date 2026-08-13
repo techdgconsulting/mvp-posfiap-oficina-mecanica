@@ -15,9 +15,11 @@ skinparam participantBorderColor #888888
 title Fluxo JWT com Perfis RBAC - Oficina Mecânica DGCar
 
 actor "Usuário\n(qualquer perfil)" as usr
+actor "Cliente\n(público)" as cli
 
 box "adapters/in/web" #CCF4D6
     participant "AuthController\n/api/auth/**" as auth
+    participant "OrcamentoDecisaoClienteController\n/api/orcamentos/decisoes-cliente/**" as decisaoCtrl
     participant "AuthWebMapper" as mapper
 end box
 
@@ -29,11 +31,17 @@ box "application\nInput Ports e Use Cases" #FFD1D1
     participant "UsuarioRepositoryPort" as usuarioPort <<interface>>
     participant "PasswordHasherPort" as passwordPort <<interface>>
     participant "TokenProviderPort" as tokenPort <<interface>>
+    participant "AprovarOrcamentoPorTokenInputPort" as aprovarTokenPort <<interface>>
+    participant "RecusarOrcamentoPorTokenInputPort" as recusarTokenPort <<interface>>
+    participant "OrcamentoDecisaoClienteUseCase" as decisaoUseCase
+    participant "OrcamentoDecisaoClienteRepositoryPort" as decisaoRepoPort <<interface>>
+    participant "TokenSeguroPort" as tokenSeguroPort <<interface>>
 end box
 
 box "domain" #FFF3B0
     participant "Usuario" as usuarioDomain
     participant "PerfilUsuario" as perfil
+    participant "OrcamentoDecisaoCliente" as decisaoDomain
 end box
 
 box "adapters/out" #CCF4D6
@@ -48,6 +56,7 @@ box "infrastructure/security" #FFF4E0
 end box
 
 database "PostgreSQL\nusuarios" as db
+database "PostgreSQL\norcamento_decisao_cliente" as decisaoDb
 
 ' ============================================================================
 == 1. Registro - validação de perfil e hash de senha ==
@@ -164,7 +173,8 @@ usr -> filt : GET /api/pecas\nsem Authorization
 filt -> filt : authHeader == null\nsegue a cadeia sem autenticar
 filt -> sec : filterChain.doFilter(request)
 sec -> sec : anyRequest().authenticated()\nSecurityContext vazio
-sec --> usr : 401 Unauthorized\n"Não autorizado"
+sec -> sec : authenticationEntryPoint\nJSON sanitizado
+sec --> usr : 401 Unauthorized\n{status, erro}
 
 ' ============================================================================
 == 5. Perfil insuficiente - 403 Forbidden ==
@@ -178,24 +188,63 @@ filt -> sec : SecurityContext = ROLE_MECANICO
 
 sec -> sec : PathPatternRequestMatcher:\n/api/pecas/**\nhasRole("GESTOR")
 sec -> sec : ROLE_MECANICO não autorizado
-sec -> sec : accessDeniedHandler\nresponse.sendError(403)
+sec -> sec : accessDeniedHandler\nJSON sanitizado
 
 note over sec #FFE0E0
-  /error permanece em permitAll().
-  Isso preserva o 403 original no dispatch interno do Tomcat.
-  Sem essa liberação, o dispatch para /error poderia ser tratado
-  como request anônimo e sobrescrever a resposta com 401.
+  401/403 sao escritos diretamente como JSON
+  com timestamp, status e erro.
+  O fallback /error permanece em permitAll()
+  e tambem remove path, error, exception e trace.
 end note
 
-sec --> usr : 403 Forbidden\n"Acesso negado"
+sec --> usr : 403 Forbidden\n{status, erro}
+
+' ============================================================================
+== 6. Request público com token opaco - decisão externa de orçamento ==
+' ============================================================================
+
+cli -> filt : POST /api/orcamentos/decisoes-cliente/{token}/aprovar\nsem Authorization
+filt -> filt : authHeader == null\nsegue a cadeia sem autenticar
+filt -> sec : filterChain.doFilter(request)
+sec -> sec : PathPatternRequestMatcher:\nPOST /api/orcamentos/decisoes-cliente/*/aprovar\npermitAll()
+sec -> decisaoCtrl : request público permitido
+
+decisaoCtrl -> aprovarTokenPort : executeAprovar(command)
+aprovarTokenPort -> decisaoUseCase : implementado por\nOrcamentoDecisaoClienteUseCase
+decisaoUseCase -> tokenSeguroPort : gerarHash(token)
+tokenSeguroPort --> decisaoUseCase : tokenHash
+decisaoUseCase -> decisaoRepoPort : buscarPorTokenHash(tokenHash)
+decisaoRepoPort -> decisaoDb : SELECT decisao WHERE token_hash = ?
+decisaoDb --> decisaoRepoPort : OrcamentoDecisaoCliente
+decisaoRepoPort --> decisaoUseCase : decisao
+decisaoUseCase -> decisaoDomain : validar pendente,\nnao expirada e uso unico
+decisaoUseCase -> decisaoDomain : aprovar()
+decisaoUseCase --> decisaoCtrl : DecisaoOrcamentoClienteResult
+decisaoCtrl --> cli : 200 OK\norcamento aprovado
+
+note over cli, decisaoUseCase #EFF8EF
+  Token opaco de decisão não é JWT.
+  Ele não autentica usuário interno nem cria sessão.
+  Serve apenas para localizar a solicitação de decisão,
+  validar hash, expiração e uso único.
+end note
+
+note over sec #EFF8EF
+  O mesmo fluxo vale para:
+  POST /api/orcamentos/decisoes-cliente/{token}/recusar
+  usando RecusarOrcamentoPorTokenInputPort.
+end note
 
 note over usr, db
   Matriz de autorização (SecurityConfig):
   GESTOR: peças, serviços, métricas, listagens e operações administrativas.
   ATENDENTE: clientes, veículos, OS, orçamento, pagamento e entrega.
   MECANICO: iniciar diagnóstico, adicionar itens e finalizar serviço.
-  Público: /api/auth/**, documentação, /error e
-  GET /api/ordens-servico/numero/*/status.
+  Público: /api/auth/**, documentação Swagger/OpenAPI,
+  /h2-console/**, /actuator/health/**, /actuator/info,
+  /error, GET /api/ordens-servico/numero/*/status,
+  POST /api/orcamentos/decisoes-cliente/*/aprovar e
+  POST /api/orcamentos/decisoes-cliente/*/recusar.
 end note
 
 legend bottom

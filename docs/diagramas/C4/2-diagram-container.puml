@@ -17,11 +17,12 @@ title Diagrama de Container — Sistema Oficina Mecânica DGCAR [C4 — Nível 2
 Person(atendente, "Atendente", "Perfil ATENDENTE. Gerencia clientes, veículos, cria OS, orçamentos e pagamentos via API REST.")
 Person(mecanico, "Mecânico", "Perfil MECANICO. Inicia diagnóstico, adiciona itens e finaliza serviço via API REST.")
 Person(gestor, "Gestor", "Perfil GESTOR. Acesso completo: tudo acima + CRUD peças/serviços + KPIs.")
-Person(cliente, "Cliente", "Proprietário do veículo. Consulta o status da OS sem login. A aprovação ou rejeição do orçamento é registrada por perfil autorizado via API REST.")
+Person(cliente, "Cliente", "Proprietário do veículo. Consulta o status da OS sem login e aprova ou recusa orçamento por link público com token.")
 
 ' ─── SISTEMAS EXTERNOS ────────────────────────────────────────────────────────
 System_Ext(viacep, "ViaCEP API", "Serviço público. Retorna endereço completo a partir de um CEP informado.")
 System_Ext(gateway, "Gateway de Pagamento", "Processa e autoriza pagamentos. Retorna aprovação ou recusa com código de transação. No projeto, a integração é representada por adapter simulável.")
+System_Ext(smtpServer, "Servidor SMTP", "Infraestrutura externa usada para envio real de e-mails quando OFICINA_EMAIL_MODE=SMTP.")
 
 ' ─── SISTEMA: OFICINA MECÂNICA ────────────────────────────────────────────────
 System_Boundary(oficina, "Sistema Oficina Mecânica") {
@@ -35,10 +36,12 @@ System_Boundary(oficina, "Sistema Oficina Mecânica") {
 Rel(atendente, api, "Gerencia clientes, veículos, OS, orçamentos e pagamentos", "JSON/HTTPS, Bearer Token")
 Rel(mecanico, api, "Inicia diagnóstico, adiciona itens, finaliza serviço", "JSON/HTTPS, Bearer Token")
 Rel(gestor, api, "Acesso completo: CRUD peças/serviços, KPIs, todas as operações", "JSON/HTTPS, Bearer Token")
-Rel(cliente, api, "Consulta status da OS pelo número sem login. Aprovação/rejeição é registrada por perfil autorizado", "JSON/HTTPS")
+Rel(cliente, api, "Consulta status da OS pelo número e aprova/recusa orçamento por token, sem login", "JSON/HTTPS")
 
 Rel(api, db, "Lê e escreve dados de todos os agregados", "SQL/TCP, porta 5432")
 Rel(api, viacep, "Consulta endereço por CEP ao cadastrar/editar cliente", "HTTP GET")
 Rel(api, gateway, "Envia valor e método de pagamento; recebe aprovação ou recusa", "HTTPS")
+Rel(api, smtpServer, "Envia notificações de orçamento e status da OS", "SMTP")
+Rel(smtpServer, cliente, "Entrega e-mails ao cliente", "E-mail")
 
 @enduml

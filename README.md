@@ -9,12 +9,15 @@
 ![Coverage](https://img.shields.io/badge/coverage-96.23%25-brightgreen)
 ![Tests](https://img.shields.io/badge/testes-361-blue)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-ready-326CE5?logo=kubernetes&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-ready-232F3E?logo=amazonwebservices&logoColor=white)
+![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?logo=githubactions&logoColor=white)
 
 ---
 
 ## 📋 Sobre o projeto
 
-API REST que cobre o ciclo completo de atendimento de uma oficina mecânica: do cadastro de clientes e veículos até a entrega do veículo após pagamento. Desenvolvido com arquitetura **DDD (Domain-Driven Design)** em camadas, autenticação **JWT** e controle de acesso por perfil (**RBAC**).
+API REST que cobre o ciclo completo de atendimento de uma oficina mecânica: do cadastro de clientes e veículos até a entrega do veículo após pagamento. Desenvolvido inicialmente com arquitetura **DDD (Domain-Driven Design)** em camadas, autenticação **JWT** e controle de acesso por perfil (**RBAC**).
 
 **Funcionalidades principais:**
 - Cadastro de clientes (CPF/CNPJ) com busca automática de endereço via **ViaCEP**
@@ -37,7 +40,10 @@ API REST que cobre o ciclo completo de atendimento de uma oficina mecânica: do 
 | Segurança | Spring Security + JWT (HMAC-SHA256) |
 | Documentação | SpringDoc OpenAPI 2.8.17 (Swagger) |
 | Testes | JUnit 5 + Mockito · JaCoCo · Allure Report |
-| Infraestrutura | Docker + Docker Compose |
+| Infraestrutura | Docker + Docker Compose + Terraform |
+| Kubernetes | Kubernetes + Amazon EKS + Kustomize |
+| AWS | Amazon EKS + Amazon ECR + Amazon RDS PostgreSQL + Amazon S3 + IAM |
+| CI/CD | GitHub Actions (`infra.yml` + `app-cd.yml`) |
 | Notificações | Spring Mail + SMTP configurável |
 
 
@@ -45,7 +51,7 @@ API REST que cobre o ciclo completo de atendimento de uma oficina mecânica: do 
 
 
 
-##  Evoluções do Projeto - Fase 2 Tech Challenge
+#  Evoluções do Projeto - Fase 2 Tech Challenge
 
 ### Objetivo da Fase 2
 
@@ -86,7 +92,7 @@ Essa decisão está registrada na [ADR-002](./docs/ADRS/ADR-002-arquitetura-clea
 <br>
 
 
-### Funcionalidades
+# Funcionalidades
 
  ### Abertura de Ordem de Serviço (OS): receber os dados do cliente, veículo, serviços e peças, retornando a identificação única da OS.
 
@@ -124,7 +130,7 @@ Essa funcionalidade está documentada também na [ADR-010](./docs/ADRS/ADR-010-d
 
 
 ### Listagem de ordens de serviço 
-#### -> Ordenação por status:  Em Execução > Aguardando Aprovação > Diagnóstico > Recebida; <br>-> Mais antigas primeiro;<br> -> Excluir (lógica não física) da listagem as OS finalizadas e entregues.)
+#### 1) Ordenação por status:  Em Execução > Aguardando Aprovação > Diagnóstico > Recebida; <br>2) Mais antigas primeiro;<br> 3) Excluir (lógica não física) da listagem as OS finalizadas e entregues.)
 
 O endpoint `GET /api/ordens-servico/fila` representa a fila operacional da oficina. Ele retorna apenas OS em `EM_EXECUCAO`, `AGUARDANDO_APROVACAO`, `EM_DIAGNOSTICO` ou `RECEBIDA`, nessa ordem de prioridade, e ordena OS do mesmo status por `dataCriacao` ascendente. OS em `FINALIZADA`, `AGUARDANDO_RETIRADA`, `ENTREGUE` ou `CANCELADA` não aparecem nessa fila.
 
@@ -171,46 +177,30 @@ PAGAMENTO_GATEWAY_APPROVAL_RATE=1.0
 
 Essa decisão está registrada na [ADR-011](./docs/ADRS/ADR-011-notificacao-status-os-email.md).
 
-
 <br>
 
 
-## Infraestrutura
+# Infraestrutura
 
 Esta fase prepara a aplicação para execução em Kubernetes e AWS com uma arquitetura simples, versionável e econômica para o contexto do projeto.
 
 ### Arquitetura AWS Proposta
 
-```text
-GitHub Actions
-   |
-   | build, testes e imagem Docker
-   v
-Amazon ECR
-   |
-   | imagem versionada
-   v
-Amazon EKS + Managed Node Group
-   |
-   | pods Spring Boot
-   v
-Amazon RDS PostgreSQL
-```
-
 Recursos provisionados em [`infra`](./infra):
 
 | Recurso | Finalidade |
 |---|---|
-| VPC | Rede isolada do projeto. |
-| Subnets públicas | Executam os nodes do EKS e o Load Balancer da API. |
-| Subnets privadas | Hospedam o RDS PostgreSQL sem IP público. |
-| Internet Gateway | Permite tráfego público para subnets públicas. |
-| Security Groups | Restringem acesso entre EKS, Load Balancer e RDS. |
-| Amazon ECR | Armazena a imagem Docker da API. |
-| Amazon EKS | Cluster Kubernetes gerenciado. |
-| Managed Node Group | Grupo de nodes EC2 para executar os pods. |
-| Amazon RDS PostgreSQL | Banco gerenciado da aplicação. |
-| IAM Roles | Permissões necessárias para EKS e nodes. |
+| Amazon S3 | Armazena o state remoto do Terraform, criado/garantido antes da infraestrutura principal. |
+| VPC | Rede isolada onde ficam os recursos da aplicação. |
+| Subnets públicas | Executam os nodes do EKS e recebem o Load Balancer público da API. |
+| Subnets privadas | Hospedam o RDS PostgreSQL sem exposição pública. |
+| Internet Gateway | Permite tráfego de entrada e saída para os recursos nas subnets públicas. |
+| Security Groups | Controlam o acesso entre Load Balancer, EKS e RDS, liberando o banco apenas para o cluster. |
+| Amazon ECR | Armazena as imagens Docker versionadas da API. |
+| Amazon EKS | Cluster Kubernetes gerenciado onde a aplicação é executada. |
+| Managed Node Group | Grupo de instâncias EC2 usado pelo EKS para executar os pods. |
+| Amazon RDS PostgreSQL | Banco relacional gerenciado usado pela aplicação Spring Boot. |
+| IAM Roles e usuário da pipeline | Permissões necessárias para Terraform, EKS, nodes e GitHub Actions. |
 
 Para reduzir custo, a arquitetura não usa NAT Gateway. Os nodes do EKS ficam em subnets públicas, enquanto o RDS fica em subnets privadas com `publicly_accessible=false`. O banco aceita conexão somente a partir do security group associado ao EKS:
 
@@ -222,23 +212,31 @@ Em produção real, a recomendação seria usar nodes em subnets privadas, NAT G
 
 ### Ordem Correta De Criação
 
-1. Criar o backend remoto do Terraform em S3.
-2. Configurar a infra principal para usar o backend S3.
-3. Criar a infraestrutura AWS principal.
-4. Atualizar o ConfigMap inicial com a URL do RDS.
-5. Criar/atualizar Secrets no cluster.
-6. Publicar a imagem Docker no ECR.
-7. Aplicar os manifestos Kubernetes.
-8. Obter a URL publica criada pelo Service `LoadBalancer`.
-9. Atualizar `OFICINA_PUBLIC_BASE_URL` com a URL real e reiniciar o deployment.
-10. Revisar seguranca e boas praticas.
-11. Destruir o ambiente apos a demonstracao para reduzir custos.
+1. Criar ou garantir o backend remoto do Terraform no Amazon S3.
+2. Gerar o `backend.tf` da infraestrutura principal apontando para o bucket S3.
+3. Executar `terraform init`, `terraform validate`, `terraform plan` e `terraform apply`.
+4. Provisionar a infraestrutura AWS principal: VPC, subnets, Security Groups, IAM, ECR, EKS, Managed Node Group e RDS PostgreSQL.
+5. Ler os outputs do Terraform, principalmente `ecr_repository_url`, `eks_cluster_name` e `spring_datasource_url`.
+6. Atualizar o `kubeconfig` para acessar o cluster EKS.
+7. Criar ou atualizar o namespace Kubernetes da aplicação.
+8. Criar ou atualizar o `Secret` com credenciais sensíveis, como banco, JWT e SMTP.
+9. Preparar o `ConfigMap` com a URL JDBC do RDS e demais configurações não sensíveis.
+10. Buildar a imagem Docker da API.
+11. Publicar a imagem versionada no Amazon ECR.
+12. Aplicar os manifestos Kubernetes com `kubectl apply -k k8s`.
+13. Atualizar a imagem do Deployment `oficina-api`.
+14. Aguardar o rollout dos pods.
+15. Obter a URL pública criada pelo Service `LoadBalancer`.
+16. Atualizar `OFICINA_PUBLIC_BASE_URL` com a URL real e reiniciar o Deployment.
+17. Validar Swagger, health checks, conexão com RDS e envio de notificações.
+18. Revisar segurança, permissões e exposição pública.
+19. Destruir o ambiente após a demonstração para reduzir custos.
 
-Para mantenedores com permissao administrativa no repositorio, a infraestrutura e o deploy da aplicacao tambem podem ser feitos por GitHub Actions. O projeto usa duas pipelines separadas: uma para infraestrutura e outra para aplicacao. Assim, commits de codigo nao executam `terraform apply`.
+Para mantenedores com permissão administrativa no repositório, esse processo também pode ser executado por GitHub Actions. O projeto usa duas pipelines separadas: `infra.yml` para infraestrutura e `app-cd.yml` para aplicação. Assim, commits de código não executam `terraform apply` nem alteram a infraestrutura por acidente.
 
 ### Passo A Passo Completo Para Subida Da Infra E Deploy Manual
 
-Este roteiro consolida a ordem operacional para criar a infraestrutura AWS, preparar o Kubernetes e fazer o deploy manual da API. Esse é o fluxo recomendado para quem não tem permissao para alterar GitHub Secrets.
+Este roteiro consolida a ordem operacional para criar a infraestrutura AWS, preparar o Kubernetes e fazer o deploy manual da API. Esse é o fluxo recomendado para quem não tem permissão para alterar GitHub Secrets.
 
 #### 0. Validar Pré-Requisitos Locais 
 Execute os comandos no mesmo ambiente onde `aws`, `terraform`, `docker` e `kubectl` estão instalados. Windows/PowerShell, Git Bash e WSL possuem instalações e `PATH` separados.
@@ -410,9 +408,9 @@ OFICINA_PUBLIC_BASE_URL: "http://localhost:8080"
 
 #### 7. Criar Secret No Kubernetes
 
-Este passo é obrigatorio para deploy manual pelo terminal, antes de aplicar os manifestos Kubernetes.
+Este passo é obrigatório para deploy manual pelo terminal, antes de aplicar os manifestos Kubernetes.
 
-Se o deploy for feito pela pipeline do GitHub Actions, este passo manual pode ser pulado. A pipeline cria ou atualiza o Secret `oficina-api-secret` usando os valores configurados em GitHub Secrets por um mantenedor do repositorio.
+Se o deploy for feito pela pipeline do GitHub Actions, este passo manual pode ser pulado. A pipeline cria ou atualiza o Secret `oficina-api-secret` usando os valores configurados em GitHub Secrets por um mantenedor do repositório.
 
 Crie o namespace:
 
@@ -420,7 +418,7 @@ Crie o namespace:
 kubectl create namespace oficina --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-Prepare os valores sensiveis:
+Prepare os valores sensíveis:
 
 - `SPRING_DATASOURCE_USERNAME`: use o mesmo valor de `db_username` em `infra/terraform.tfvars`.
 - `SPRING_DATASOURCE_PASSWORD`: use o mesmo valor de `db_password` em `infra/terraform.tfvars`.
@@ -433,7 +431,7 @@ JWT_SECRET=$(openssl rand -base64 48)
 echo "$JWT_SECRET"
 ```
 
-Se `openssl` nao estiver disponivel, gere uma string aleatoria com pelo menos 32 caracteres e use como `JWT_SECRET`.
+Se `openssl` não estiver disponível, gere uma string aleatória com pelo menos 32 caracteres e use como `JWT_SECRET`.
 
 Linux/macOS/Git Bash:
 
@@ -483,7 +481,7 @@ O valor de `newName` no `k8s/kustomization.yaml` deve ser o mesmo valor de `ECR_
 echo $ECR_URL
 ```
 
-Antes de aplicar os manifestos, atualize `k8s/kustomization.yaml` com o repositorio real publicado no ECR:
+Antes de aplicar os manifestos, atualize `k8s/kustomization.yaml` com o repositório real publicado no ECR:
 
 ```yaml
 images:
@@ -492,9 +490,9 @@ images:
     newTag: latest
 ```
 
-Use o valor de `ECR_URL` sem a tag `:latest` no campo `newName`. Se o placeholder permanecer, o EKS tentara baixar uma imagem inexistente no Docker Hub e os pods ficarao em `ImagePullBackOff`.
+Use o valor de `ECR_URL` sem a tag `:latest` no campo `newName`. Se o placeholder permanecer, o EKS tentará baixar uma imagem inexistente no Docker Hub e os pods ficarão em `ImagePullBackOff`.
 
-O comando `kubectl set image` so deve ser usado depois que o `Deployment` ja existir no cluster, por exemplo em uma troca posterior de imagem.
+O comando `kubectl set image` só deve ser usado depois que o `Deployment` já existir no cluster, por exemplo em uma troca posterior de imagem.
 
 #### 9. Aplicar E Validar Kubernetes Manualmente
 
@@ -534,7 +532,7 @@ Atualize `k8s/configmap.yaml` com a URL pública real:
 OFICINA_PUBLIC_BASE_URL: "http://a1b2c3d4e5.us-east-1.elb.amazonaws.com"
 ```
 
-Essa variável não é necessária para o `Service` responder chamadas HTTP básicas. Ela é usada pela aplicação para montar links públicos em notificações, como acompanhamento de OS e aprovação/recusa de orçamento por token. Se permanecer como `http://localhost:8080`, os links gerados em e-mails ou logs apontarao para a maquina de quem abrir o link, e nao para o Load Balancer da AWS.
+Essa variável não é necessária para o `Service` responder chamadas HTTP básicas. Ela é usada pela aplicação para montar links públicos em notificações, como acompanhamento de OS e aprovação/recusa de orçamento por token. Se permanecer como `http://localhost:8080`, os links gerados em e-mails ou logs apontarão para a máquina de quem abrir o link, e não para o Load Balancer da AWS.
 
 Aplique novamente o ConfigMap e reinicie o deployment para os pods carregarem o novo valor:
 
@@ -544,28 +542,28 @@ kubectl rollout restart deployment/oficina-api -n oficina
 kubectl rollout status deployment/oficina-api -n oficina
 ```
 
-#### 11. Liberar Usuario IAM Da Pipeline No EKS (Opcional Para Mantenedores)
+#### 11. Liberar Usuário IAM Da Pipeline No EKS (Opcional Para Mantenedores)
 
-Este passo nao e necessario para o deploy manual. Execute somente se o deploy tambem será feito pela pipeline do GitHub Actions.
+Este passo não é necessário para o deploy manual. Execute somente se o deploy também será feito pela pipeline do GitHub Actions.
 
-Para o GitHub Actions fazer deploy, ele precisa de dois niveis de permissao:
+Para o GitHub Actions fazer deploy, ele precisa de dois níveis de permissão:
 
-- permissao IAM na AWS para acessar ECR e descrever o cluster EKS;
-- permissao Kubernetes dentro do cluster EKS para executar `kubectl apply`, `kubectl set image` e `kubectl rollout status`.
+- permissão IAM na AWS para acessar ECR e descrever o cluster EKS;
+- permissão Kubernetes dentro do cluster EKS para executar `kubectl apply`, `kubectl set image` e `kubectl rollout status`.
 
-##### 11.1 Criar O Usuario IAM Da Pipeline
+##### 11.1 Criar O Usuário IAM Da Pipeline
 
-O usuario deve existir na AWS IAM. Pelo Console AWS, acesse `IAM > Users > Create user` e crie um usuario programatico especifico para a esteira, por exemplo:
+O usuário deve existir na AWS IAM. Pelo Console AWS, acesse `IAM > Users > Create user` e crie um usuário programático específico para a esteira, por exemplo:
 
 ```text
 github-actions-oficina-dgcar
 ```
 
-Nao use access key do usuario root. Depois gere uma access key para esse usuario em `IAM > Users > github-actions-oficina-dgcar > Security credentials > Create access key`. Os valores gerados serao cadastrados nos GitHub Secrets `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` no passo 12.
+Não use access key do usuário root. Depois gere uma access key para esse usuário em `IAM > Users > github-actions-oficina-dgcar > Security credentials > Create access key`. Os valores gerados serão cadastrados nos GitHub Secrets `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` no passo 12.
 
 ##### 11.2 Automatizar Permissões Com Terraform
 
-O Terraform da pasta `infra` pode automatizar as permissões da pipeline para um usuario IAM ja existente. Para habilitar, configure no `infra/terraform.tfvars`:
+O Terraform da pasta `infra` pode automatizar as permissões da pipeline para um usuário IAM já existente. Para habilitar, configure no `infra/terraform.tfvars`:
 
 ```hcl
 enable_github_actions_eks_access = true
@@ -582,10 +580,10 @@ terraform apply
 
 Com essa opção habilitada, o Terraform:
 
-- anexa `AmazonEC2ContainerRegistryPowerUser` ao usuario IAM da pipeline;
+- anexa `AmazonEC2ContainerRegistryPowerUser` ao usuário IAM da pipeline;
 - cria uma policy inline permitindo `eks:DescribeCluster` no cluster criado;
-- cria a `aws_eks_access_entry` para o usuario IAM no EKS;
-- associa `AmazonEKSClusterAdminPolicy` ao usuario no escopo do cluster.
+- cria a `aws_eks_access_entry` para o usuário IAM no EKS;
+- associa `AmazonEKSClusterAdminPolicy` ao usuário no escopo do cluster.
 
 Para conferir o ARN esperado do usuário da pipeline:
 
@@ -597,7 +595,7 @@ terraform output github_actions_iam_user_arn
 
 Se não quiser automatizar pelo Terraform, faça todos os passos abaixo no Console AWS.
 
-**A. Anexar permissao de ECR ao usuario IAM**
+**A. Anexar permissão de ECR ao usuário IAM**
 
 1. Acesse `IAM > Users > github-actions-oficina-dgcar > Permissions`.
 2. Clique em `Add permissions`.
@@ -639,21 +637,21 @@ terraform output -raw eks_cluster_name
 
 **C. Criar a access entry no EKS**
 
-1. Copie o ARN do usuario em `IAM > Users > github-actions-oficina-dgcar > Summary > ARN`.
+1. Copie o ARN do usuário em `IAM > Users > github-actions-oficina-dgcar > Summary > ARN`.
 2. Acesse `EKS > Clusters > <eks_cluster_name> > Access`.
 3. Clique em `Create access entry`.
-4. Em `IAM principal ARN`, cole o ARN do usuario `github-actions-oficina-dgcar`.
+4. Em `IAM principal ARN`, cole o ARN do usuário `github-actions-oficina-dgcar`.
 5. Em `Type`, escolha `Standard`.
 6. Avance para a etapa de policy.
 7. Em `Access policy`, selecione `AmazonEKSClusterAdminPolicy`.
 8. Em `Access scope`, selecione `Cluster`.
 9. Conclua em `Create`.
 
-O `eks:DescribeCluster` e necessario porque a pipeline executa `aws eks update-kubeconfig`. A access entry e necessaria porque, depois de autenticar na AWS, a pipeline tambem precisa de permissao Kubernetes dentro do cluster.
+O `eks:DescribeCluster` é necessário porque a pipeline executa `aws eks update-kubeconfig`. A access entry é necessária porque, depois de autenticar na AWS, a pipeline também precisa de permissão Kubernetes dentro do cluster.
 
 ##### 11.4 Alternativa Manual Pela AWS CLI
 
-Se preferir liberar o usuário da pipeline por linha de comando, execute os comandos abaixo com uma identidade AWS que ja tenha permissão administrativa no EKS:
+Se preferir liberar o usuário da pipeline por linha de comando, execute os comandos abaixo com uma identidade AWS que já tenha permissão administrativa no EKS:
 
 ```bash
 AWS_REGION="us-east-1"
@@ -678,7 +676,7 @@ aws eks wait cluster-active \
   --name "$CLUSTER_NAME"
 ```
 
-Verifique se a access entry ja existe:
+Verifique se a access entry já existe:
 
 ```bash
 aws eks list-access-entries \
@@ -686,7 +684,7 @@ aws eks list-access-entries \
   --cluster-name "$CLUSTER_NAME"
 ```
 
-Crie a access entry para o usuario IAM da pipeline:
+Crie a access entry para o usuário IAM da pipeline:
 
 ```bash
 aws eks create-access-entry \
@@ -720,9 +718,9 @@ aws eks list-associated-access-policies \
 
 #### 12. Configurar GitHub Secrets (Opcional Para Mantenedores)
 
-Este passo nao e necessário para o deploy manual. Ele e necessário apenas para quem tem permissão administrativa no repositorio e vai executar o deploy pela pipeline do GitHub Actions.
+Este passo não é necessário para o deploy manual. Ele é necessário apenas para quem tem permissão administrativa no repositório e vai executar o deploy pela pipeline do GitHub Actions.
 
-Configure no repositorio GitHub:
+Configure no repositório GitHub:
 
 ```text
 AWS_ACCESS_KEY_ID
@@ -742,6 +740,8 @@ SMTP_PASSWORD
 Valores esperados para este projeto:
 
 ```text
+AWS_ACCESS_KEY_ID=<access-key-id-do-usuario-da-pipeline>
+AWS_SECRET_ACCESS_KEY=<secret-access-key-do-usuario-da-pipeline>
 AWS_REGION=us-east-1
 TF_STATE_BUCKET=oficina-dgcar-fiap-tfstate-tsoat16
 TF_STATE_KEY=oficina-dgcar/academic/terraform.tfstate
@@ -754,9 +754,9 @@ SMTP_USERNAME=
 SMTP_PASSWORD=
 ```
 
-Os secrets `SPRING_DATASOURCE_USERNAME` e `SPRING_DATASOURCE_PASSWORD` sao opcionais se forem iguais a `DB_USERNAME` e `DB_PASSWORD`. A pipeline da aplicacao usa esses valores como fallback.
+Os secrets `SPRING_DATASOURCE_USERNAME` e `SPRING_DATASOURCE_PASSWORD` são opcionais se forem iguais a `DB_USERNAME` e `DB_PASSWORD`. A pipeline da aplicação usa esses valores como fallback.
 
-Nao e necessario cadastrar `EKS_CLUSTER_NAME` nem `ECR_REPOSITORY`. A pipeline da aplicacao le `eks_cluster_name`, `ecr_repository_url` e `spring_datasource_url` diretamente dos outputs do Terraform no state remoto.
+Não é necessário cadastrar `EKS_CLUSTER_NAME` nem `ECR_REPOSITORY`. A pipeline da aplicação lê `eks_cluster_name`, `ecr_repository_url` e `spring_datasource_url` diretamente dos outputs do Terraform no state remoto.
 
 Para gerar o valor de `JWT_SECRET` antes de cadastrar no GitHub:
 
@@ -766,7 +766,7 @@ openssl rand -base64 48
 
 #### 13. Disparar As Esteiras CI/CD Separadas (Opcional Para Mantenedores)
 
-Este passo não é necessário para o deploy manual. Use apenas quando os GitHub Secrets ja estiverem configurados e o usuario/role da pipeline ja tiver acesso ao EKS.
+Este passo não é necessário para o deploy manual. Use apenas quando os GitHub Secrets já estiverem configurados e o usuário/role da pipeline já tiver acesso ao EKS.
 
 Primeiro execute a esteira de infraestrutura:
 
@@ -774,7 +774,7 @@ Primeiro execute a esteira de infraestrutura:
 .github/workflows/infra.yml
 ```
 
-Ela pode ser disparada manualmente por `workflow_dispatch` ou automaticamente quando houver mudanca em `infra/**`. Essa esteira executa:
+Ela pode ser disparada manualmente por `workflow_dispatch` ou automaticamente quando houver mudança em `infra/**`. Essa esteira executa:
 
 ```text
 bootstrap governado do bucket S3 do Terraform state
@@ -785,7 +785,7 @@ terraform apply
 terraform output
 ```
 
-Depois execute a esteira da aplicacao:
+Depois execute a esteira da aplicação:
 
 ```text
 .github/workflows/app-cd.yml
@@ -798,7 +798,7 @@ git commit -m "feat: add aws eks terraform ci cd phase 2"
 git push origin main
 ```
 
-O push na `main` dispara `.github/workflows/app-cd.yml` somente quando houver mudanca em codigo da aplicacao, `Dockerfile`, `pom.xml`, `k8s/**` ou no proprio workflow. Essa pipeline nao executa `terraform apply`; ela apenas le os outputs do Terraform no state remoto e executa:
+O push na `main` dispara `.github/workflows/app-cd.yml` somente quando houver mudança em código da aplicação, `Dockerfile`, `pom.xml`, `k8s/**` ou no próprio workflow. Essa pipeline não executa `terraform apply`; ela apenas lê os outputs do Terraform no state remoto e executa:
 
 ```text
 mvn clean test
@@ -812,7 +812,7 @@ preparo do ConfigMap e kustomization com outputs do Terraform
 kubectl apply -k k8s
 kubectl set image deployment/oficina-api
 kubectl rollout status
-atualizacao de OFICINA_PUBLIC_BASE_URL com o LoadBalancer
+atualização de OFICINA_PUBLIC_BASE_URL com o LoadBalancer
 ```
 
 A imagem publicada terá o formato:
@@ -836,7 +836,7 @@ kubectl logs -n oficina deployment/oficina-api
 
 #### Teste controlado do HPA para demonstrar escalabilidade:
 
-Instale o Metrics Server, necessario para `kubectl top` e para o HPA calcular CPU/memoria:
+Instale o Metrics Server, necessário para `kubectl top` e para o HPA calcular CPU/memória:
 
 ```bash
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
@@ -871,7 +871,7 @@ No Git Bash do Windows, evite a conversao automatica de `/bin/sh` usando `MSYS_N
 MSYS_NO_PATHCONV=1 kubectl run hpa-load -n oficina --image=busybox:1.36 --restart=Never -- /bin/sh -c 'for i in $(seq 1 80); do while true; do wget -q -O- http://oficina-api/actuator/health >/dev/null; done & done; sleep 300'
 ```
 
-Acompanhe o autoscale. Pode levar alguns minutos ate o HPA recalcular as metricas. O objetivo da demonstracao e ver `REPLICAS` subir de `2` para `3`:
+Acompanhe o autoscale. Pode levar alguns minutos até o HPA recalcular as métricas. O objetivo da demonstração é ver `REPLICAS` subir de `2` para `3`:
 
 ```bash
 kubectl get hpa oficina-api -n oficina -w
@@ -904,27 +904,33 @@ Depois de alguns minutos sem carga, o HPA deve estabilizar novamente em `REPLICA
 
 #### 15. Encerrar Ambiente Após A Utilização
 
-Siga esta ordem. O bucket S3 do backend remoto guarda o state da infraestrutura principal, então ele deve ser distruído somente no final. Se o bucket for apagado antes do `terraform destroy` da pasta `infra`, o Terraform perde o mapa dos recursos e VPC/EKS/RDS podem ficar órfãos na AWS.
+Existem duas formas de encerrar o ambiente: pela pipeline do GitHub Actions ou manualmente pelo terminal. Use apenas uma delas para destruir a infraestrutura principal.
 
-##### 15.0 Destroy Automatizado Pela Pipeline
+##### Opção A - Destroy Automatizado Pela Pipeline
 
-Para mantenedores com GitHub Secrets configurados, o ambiente principal pode ser destruido pela esteira de infraestrutura:
+Para mantenedores com GitHub Secrets configurados, o ambiente principal pode ser destruído pela esteira de infraestrutura:
 
 1. Acesse **Actions** no GitHub.
 2. Abra **Infra CI/CD - Terraform AWS**.
 3. Clique em **Run workflow**.
 4. Selecione `action = destroy`.
-5. Confirme a execucao.
+5. Confirme a execução.
 
-Esse modo tenta remover primeiro os recursos Kubernetes da namespace `oficina`, incluindo o Service `oficina-api`, aguarda a remocao dos Load Balancers do Kubernetes e depois executa:
+Esse modo tenta remover primeiro os recursos Kubernetes da namespace `oficina`, incluindo o Service `oficina-api`, aguarda a remoção dos Load Balancers do Kubernetes e depois executa:
 
 ```text
 terraform destroy -auto-approve
 ```
 
-O destroy automatizado nao remove o usuario IAM `github-actions-oficina-dgcar` nem os GitHub Secrets. Isso permite recriar o ambiente depois pelo proprio CI/CD.
+O destroy automatizado não remove o usuário IAM `github-actions-oficina-dgcar` nem os GitHub Secrets. Isso permite recriar o ambiente depois pelo próprio CI/CD.
 
-##### 15.1 Remover Recursos Kubernetes
+> Importante: o destroy pela pipeline só remove com segurança a infraestrutura principal registrada no mesmo state remoto do Terraform. Recursos criados manualmente fora desse state, pelo Console AWS, AWS CLI, `kubectl` ou outro backend Terraform, devem ser removidos manualmente. O backend remoto S3 também deve ser destruído separadamente pelo fluxo de `infra/backend-bootstrap`, somente depois da infra principal.
+
+##### Opção B - Destroy Manual Pelo Terminal
+
+Siga esta ordem no destroy manual. O bucket S3 do backend remoto guarda o state da infraestrutura principal, então ele deve ser destruído somente no final. Se o bucket for apagado antes do `terraform destroy` da pasta `infra`, o Terraform perde o mapa dos recursos e VPC/EKS/RDS podem ficar órfãos na AWS.
+
+###### 15.1 Remover Recursos Kubernetes
 
 Remova primeiro os recursos Kubernetes que podem manter Load Balancer e ENIs ativos na VPC:
 
@@ -942,7 +948,7 @@ kubectl get namespace oficina
 kubectl get svc -A
 ```
 
-##### 15.2 Destruir A Infra Principal
+###### 15.2 Destruir A Infra Principal
 
 Com o backend S3 ainda existente, destrua a infraestrutura principal usando o estado remoto do Terraform:
 
@@ -963,7 +969,7 @@ terraform force-unlock <lock-id>
 
 > Use `force-unlock` somente quando você tiver certeza de que ninguém está usando o mesmo state remoto no momento.
 
-##### 15.3 Validar Se A VPC Foi Removida
+###### 15.3 Validar Se A VPC Foi Removida
 
 Depois do `destroy` da infra principal, confirme que a VPC do projeto não aparece mais:
 
@@ -1008,7 +1014,7 @@ aws eks wait cluster-deleted \
 
 Se a exclusão da VPC continuar bloqueada por `network interfaces`, verifique no Console AWS os recursos associados às ENIs, como Load Balancer, EKS ou RDS, e remova esses recursos antes de tentar excluir novamente a VPC.
 
-##### 15.4 Destruir O Backend Remoto
+###### 15.4 Destruir O Backend Remoto
 
 Somente depois da infra principal ter sido destruída, remova o backend remoto:
 
@@ -1049,6 +1055,199 @@ terraform destroy -auto-approve
 
 Todas as decisões da Infra estrutura estão descritas na [ADR-Infra.md] [`docs/infraestrutura`](./docs/infraestrutura) |
 <br>
+
+
+
+# CI/CD - Fluxo de deploy da infraestrutura e da aplicação
+
+> Observação: este fluxo automatiza, via GitHub Actions, os mesmos passos executados manualmente no roteiro de subida da infraestrutura, deploy da aplicação, validação e destruição do ambiente. A diferença é que as pipelines usam GitHub Secrets e outputs do Terraform para reduzir intervenção manual e evitar que commits de aplicação recriem a infraestrutura.
+
+```text
+GitHub Actions
+   |
+   | infra.yml
+   | cria/garante backend remoto do Terraform
+   v
+Amazon S3
+   |
+   | terraform.tfstate remoto
+   v
+Terraform
+   |
+   | provisiona infraestrutura AWS
+   v
+VPC + Security Groups + IAM
+   |
+   +--> Amazon ECR
+   |       armazena imagem Docker versionada
+   |
+   +--> Amazon EKS + Managed Node Group
+   |       executa pods Spring Boot
+   |
+   +--> Amazon RDS PostgreSQL
+           banco gerenciado em subnet privada
+```
+<br>
+
+```text
+GitHub Actions
+   |
+   | app-cd.yml
+   | mvn test, docker build e docker push
+   v
+Amazon ECR
+   |
+   | imagem versionada pelo commit
+   v
+Amazon EKS + Managed Node Group
+   |
+   | Deployment oficina-api + Service LoadBalancer
+   v
+API Spring Boot
+   |
+   | JDBC/TCP 5432
+   v
+Amazon RDS PostgreSQL
+```
+
+## Visão geral
+
+Este fluxo representa duas pipelines separadas do projeto:
+
+- `infra.yml`: cria e atualiza a infraestrutura AWS com Terraform.
+- `app-cd.yml`: testa, empacota e publica a aplicação no EKS.
+
+A ordem correta começa pelo backend remoto do Terraform. Sem esse passo, a infraestrutura principal não tem onde persistir e consultar o `terraform.tfstate` remoto.
+
+Existe uma diferença importante entre duas coisas parecidas:
+
+- Backend remoto: é o bucket S3 onde o state fica armazenado. Ele só deve ser criado ou garantido no fluxo de `apply`.
+- `backend.tf`: é um arquivo gerado pela pipeline para apontar o Terraform para esse bucket. Ele também é necessário no `destroy`, porque o Terraform precisa ler o state remoto antes de destruir os recursos.
+
+## Fluxo de criação e atualização da infraestrutura
+
+1. O mantenedor faz push, merge ou dispara uma pipeline manualmente.
+2. A pipeline de infraestrutura (`infra.yml`) faz checkout do repositório.
+3. A pipeline configura Terraform e credenciais AWS.
+4. A pipeline cria ou garante o backend remoto do Terraform no S3.
+5. A pipeline gera o `backend.tf` apontando para o bucket S3.
+6. A pipeline gera o `terraform.tfvars` usado na execução.
+7. A pipeline executa `terraform init` e `terraform validate`.
+8. A pipeline executa `terraform plan` e `terraform apply`.
+9. O Terraform provisiona VPC, EKS, RDS, ECR, IAM e Security Groups.
+10. A pipeline publica os outputs necessários para o deploy da aplicação.
+
+### Como Executar No GitHub
+
+1. Acesse **Actions** no repositório GitHub.
+2. Abra **Infra CI/CD - Terraform AWS**.
+3. Clique em **Run workflow**.
+4. Selecione `action = apply`.
+5. Confirme a execução e aguarde a conclusão do job.
+
+## Fluxo de destruição da infraestrutura
+
+1. O mantenedor dispara `infra.yml` manualmente com a ação `destroy`.
+2. A pipeline faz checkout do repositório.
+3. A pipeline configura Terraform e credenciais AWS.
+4. A pipeline gera o `backend.tf` apontando para o bucket S3 já existente.
+5. A pipeline gera o `terraform.tfvars` usado na execução.
+6. A pipeline executa `terraform init` para acessar o state remoto.
+7. A pipeline lê outputs existentes, como nome do cluster EKS.
+8. A pipeline remove recursos Kubernetes dependentes, como Service e namespace.
+9. A pipeline executa `terraform destroy`.
+
+### Como Destruir No GitHub
+
+1. Acesse **Actions** no repositório GitHub.
+2. Abra **Infra CI/CD - Terraform AWS**.
+3. Clique em **Run workflow**.
+4. Selecione `action = destroy`.
+5. Confirme a execução.
+
+> O destroy pela pipeline remove a infraestrutura principal, mas não remove o usuário IAM da pipeline nem os GitHub Secrets. O backend remoto S3 deve permanecer disponível enquanto o Terraform lê o state para destruir os recursos.
+> Recursos criados manualmente fora do state remoto usado pela pipeline não são garantidos pelo `terraform destroy` do CI/CD e devem ser removidos manualmente.
+
+## Fluxo de deploy da aplicação
+
+1. Um push de código da aplicação ou uma execução manual dispara `app-cd.yml`.
+2. A pipeline da aplicação executa build e testes com Maven.
+3. A pipeline gera o `backend.tf` para ler os outputs da infraestrutura.
+4. A pipeline lê `terraform output` no state remoto, sem executar `terraform apply`.
+5. A pipeline valida os outputs de ECR, EKS e URL JDBC.
+6. A pipeline builda a imagem Docker versionada pelo commit.
+7. A pipeline publica a imagem no Amazon ECR.
+8. A pipeline atualiza o `kubeconfig` do EKS.
+9. A pipeline cria ou atualiza o namespace Kubernetes.
+10. A pipeline cria ou atualiza o `Secret` da aplicação.
+11. A pipeline prepara `ConfigMap` e `kustomization.yaml` com os outputs da infraestrutura.
+12. A pipeline aplica os manifestos com `kubectl apply -k k8s`.
+13. A pipeline atualiza a imagem do Deployment `oficina-api`.
+14. A pipeline aguarda o rollout dos pods.
+15. A pipeline atualiza a URL pública da aplicação com o hostname do LoadBalancer.
+16. O Service `LoadBalancer` expõe Swagger e API.
+
+### Como Executar No GitHub
+
+1. Acesse **Actions** no repositório GitHub.
+2. Abra **App CI/CD - Build, Test and Deploy**.
+3. Clique em **Run workflow** para execução manual, ou faça push na `main` alterando `src/**`, `k8s/**`, `Dockerfile`, `pom.xml` ou `.github/workflows/app-cd.yml`.
+4. Aguarde os jobs de build, testes, publicação no ECR e deploy no EKS.
+5. Ao final, consulte a URL impressa no job para acessar o Swagger.
+
+### Como Destruir No GitHub
+
+O deploy da aplicação não possui uma ação própria de destroy. Para remover a aplicação e a infraestrutura pelo GitHub, execute o destroy da pipeline **Infra CI/CD - Terraform AWS** com `action = destroy`.
+
+## Componentes criados
+
+### Infraestrutura AWS
+
+- VPC
+- Internet Gateway
+- Subnets públicas e privadas
+- Security Groups
+- EKS cluster
+- Managed Node Group
+- RDS PostgreSQL
+- ECR repository
+- IAM roles e acessos
+- S3 bucket para backend remoto do Terraform
+
+### Kubernetes
+
+- Namespace `oficina`
+- Secret `oficina-api-secret`
+- ConfigMap
+- Deployment `oficina-api`
+- Service `oficina-api`
+- HPA
+
+### Aplicação
+
+- Imagem Docker no ECR
+- Aplicação Spring Boot em execução no cluster
+- Swagger e endpoints REST disponíveis via LoadBalancer
+
+## Observações importantes
+
+- O backend remoto do Terraform deve ser criado antes da infraestrutura principal.
+- No `destroy`, o backend remoto não é recriado; a pipeline apenas gera `backend.tf` para localizar o state remoto existente.
+- A infraestrutura principal cria os recursos AWS usados pela aplicação: VPC, EKS, RDS, ECR, IAM e Security Groups.
+- A pipeline da aplicação não deve recriar a infraestrutura em cada push.
+- A pipeline da aplicação apenas consome `terraform output` do state remoto e atualiza imagem, configuração e deployment.
+- A pipeline da aplicação depende dos outputs `ecr_repository_url`, `eks_cluster_name` e `spring_datasource_url`.
+- O banco e os recursos de rede ficam sob responsabilidade da infraestrutura provisionada pelo Terraform.
+
+## Diagrama
+
+O diagrama correspondente está em:
+
+- [deploy-flow.puml](./deploy-flow.puml)
+
+Para visualizar em VS Code, abra o arquivo `.puml` com suporte a PlantUML.
+
+
 
 <br>
 
@@ -1106,15 +1305,6 @@ docker compose logs -f app
 
 No Postman, importe a collection completa em [`postman`](./postman) e execute a pasta `TechChallengeFase2 > Fluxo Completo + Notificação por E-mail + Aprovação + Consulta de Status + Fila de OSs`. Antes de rodar a pasta, ajuste a variável de collection `emailClienteNotificacao` para o e-mail que deve aparecer no provedor SMTP/Mailtrap.
 
-Fluxo sugerido para demonstração:
-
-1. Mostrar o arquivo `.env` local com as credenciais SMTP preenchidas, sem versionar o arquivo.
-2. Subir aplicação e PostgreSQL com `docker compose up --build -d`.
-3. Acompanhar logs com `docker compose logs -f app`.
-4. Executar a pasta `TechChallengeFase2 > Fluxo Completo + Notificação por E-mail + Aprovação + Consulta de Status + Fila de OSs` no Postman.
-5. Mostrar os e-mails chegando no Mailtrap/provedor SMTP.
-6. Mostrar no Swagger ou Postman a consulta de status da OS após as transições.
-7. Executar o request `14 - Listar fila operacional de OS` para demonstrar que OS entregues/finalizadas ficam fora da fila operacional.
 
 ### Sem Docker (perfil dev com H2)
 
@@ -1156,6 +1346,20 @@ curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "gestor1", "password": "senha123"}'
 ```
+
+### Contrato de erro
+
+As respostas de erro seguem um payload padronizado e sanitizado:
+
+```json
+{
+  "timestamp": "2026-08-13T09:29:26",
+  "status": 500,
+  "erro": "Erro interno do servidor"
+}
+```
+
+Para reduzir divulgação de informações, a API não expõe `path`, `error`, `exception`, `trace` ou `message` nas respostas de erro padrão, incluindo `401`, `403` e o fallback `/error`. Detalhes técnicos devem ser consultados nos logs da aplicação.
 
 ---
 
@@ -1246,23 +1450,91 @@ mvn test allure:report
 ```
 ---
 
+## Segurança E Varreduras
+
+O projeto utiliza duas ferramentas complementares para validar segurança:
+
+- **OWASP ZAP:** análise dinâmica da API em execução (DAST), simulando acessos HTTP reais para identificar exposição indevida de erros, falhas de configuração, headers ausentes, autenticação mal configurada e comportamento inseguro em endpoints.
+- **Trivy:** análise da imagem Docker e do `app.jar`, identificando vulnerabilidades conhecidas em pacotes do sistema operacional da imagem e bibliotecas Java empacotadas.
+
+### OWASP ZAP
+
+Antes da varredura, suba a aplicação localmente:
+
+```bash
+docker compose up --build
+```
+
+No ZAP, importe o contrato OpenAPI/Swagger da aplicação:
+
+```text
+http://localhost:8080/api-docs
+```
+
+Depois execute o spider/scan ativo conforme o cenário de teste. Para validar correções de segurança, prefira uma nova sessão do ZAP ou limpe os alertas antigos antes de uma nova varredura.
+
+| Relatório de Vulnerabilidades OWASP | [`docs/ReportOWASP/FASE2-2026-08-13-ZAP-Report-.html/`](./docs/ReportOWASP/FASE2-2026-08-13-ZAP-Report-.html/) |
+
+### Trivy
+
+Gere a imagem local:
+
+```bash
+docker build -t oficina-api:latest .
+```
+
+Exporte a imagem e execute a análise de vulnerabilidades altas e críticas:
+
+```bash
+docker save oficina-api:latest -o oficina-api.tar
+MSYS_NO_PATHCONV=1 docker run --rm -v "$PWD":/work aquasec/trivy image --input /work/oficina-api.tar --severity HIGH,CRITICAL
+```
+
+No PowerShell, o mesmo scan pode ser executado com:
+
+```powershell
+docker run --rm -v "${PWD}:/work" aquasec/trivy image --input /work/oficina-api.tar --severity HIGH,CRITICAL
+```
+
+Para gerar evidência em JSON:
+
+```bash
+MSYS_NO_PATHCONV=1 docker run --rm -v "$PWD":/work aquasec/trivy image --input /work/oficina-api.tar --severity HIGH,CRITICAL --format json --output /work/docs/ReportOWASP/trivy-image-report.json
+```
+| Relatório de Vulnerabilidades TRIVY | [`docs/ReportTRIVY/trivy-image-report.json/`](./docs/ReportTRIVY/trivy-image-report.json/) |
+
+---
+
 ## 📁 Documentação adicional
 
 | Recurso | Localização |
 |---|---|
-| Diagramas DDD (PlantUML) | [`docs/diagramas`](./docs/diagramas) |
+| Diagramas DDD e apoio (PlantUML) | [`docs/diagramas`](./docs/diagramas) |
+| Diagramas C4 | [`docs/diagramas/C4`](./docs/diagramas/C4) |
+| Diagrama de contexto C4 | [`1-diagram-context.puml`](./docs/diagramas/C4/1-diagram-context.puml) |
+| Diagrama de containers C4 | [`2-diagram-container.puml`](./docs/diagramas/C4/2-diagram-container.puml) |
+| Diagrama de componentes C4 | [`3-diagram-components.puml`](./docs/diagramas/C4/3-diagram-components.puml) |
+| Diagrama de sequência C4 | [`4-diagram-sequence.puml`](./docs/diagramas/C4/4-diagram-sequence.puml) |
+| Diagrama tático DDD | [`tactical-ddd.puml`](./docs/diagramas/tactical-ddd.puml) |
+| Máquina de estados da OS | [`state-machine-diagram-service-order.puml`](./docs/diagramas/state-machine-diagram-service-order.puml) |
+| Fluxo JWT/RBAC | [`jwt-rbac-flow.puml`](./docs/diagramas/jwt-rbac-flow.puml) |
+| Glossário / Linguagem Ubíqua | [`glossary-ubiquitous-language.md`](./docs/diagramas/glossary-ubiquitous-language.md) |
+| Diagramas de infraestrutura e CI/CD | [`docs/diagramas/infra`](./docs/diagramas/infra) |
+| Componentes AWS provisionados | [`aws-infra-components.puml`](./docs/diagramas/infra/aws-infra-components.puml) |
+| Fluxo CI/CD infraestrutura/aplicação | [`deploy-flow.puml`](./docs/diagramas/infra/deploy-flow.puml) |
 | ADRs (decisões de arquitetura) | [`docs/ADRS`](./docs/ADRS) |
+| ADR de varreduras OWASP ZAP e Trivy | [`ADR-012-varreduras-seguranca-owasp-zap-trivy.md`](./docs/ADRS/ADR-012-varreduras-seguranca-owasp-zap-trivy.md) |
+| ADR de infraestrutura | [`docs/infraestrutura/ADR-Infra.md`](./docs/infraestrutura/ADR-Infra.md) |
 | Collection Postman | [`postman`](./postman) |
 | Requisições HTTP (VS Code) | [`api-requests.http`](./api-requests.http) |
 | Requisitos Funcionais e Não Funcionais | [`docs/requisitos`](./docs/requisitos) |
-| Relatório de Vulnerabilidades OWASP | [`docs/ReportOWASP`](./docs/ReportOWASP) |
-| BrainStorming | Miro link abaixo |
-| Domain Storytelling | Miro link abaixo |
-| Diagrama de Linguagem Ubíqua | Miro link abaixo |
-| EventStorming | Miro link abaixo |
-| Diagrama de Contexto Limitado | Miro link abaixo |
-
-https://miro.com/app/board/uXjVHc0alo8=/?share_link_id=611826904943
+| Relatório de Vulnerabilidades OWASP | [`docs/ReportOWASP/FASE2-2026-08-13-ZAP-Report-.html/`](./docs/ReportOWASP/FASE2-2026-08-13-ZAP-Report-.html/) |
+| Relatório de Vulnerabilidades TRIVY | [`docs/ReportTRIVY/trivy-image-report.json/`](./docs/ReportTRIVY/trivy-image-report.json/) |
+| Brainstorming | [Miro](https://miro.com/app/board/uXjVHc0alo8=/?share_link_id=611826904943) |
+| Domain Storytelling | [Miro](https://miro.com/app/board/uXjVHc0alo8=/?share_link_id=611826904943) |
+| Diagrama de Linguagem Ubíqua | [Miro](https://miro.com/app/board/uXjVHc0alo8=/?share_link_id=611826904943) |
+| EventStorming | [Miro](https://miro.com/app/board/uXjVHc0alo8=/?share_link_id=611826904943) |
+| Diagrama de Contexto Limitado | [Miro](https://miro.com/app/board/uXjVHc0alo8=/?share_link_id=611826904943) |
 
 
 ## 📄 Licença

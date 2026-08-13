@@ -12,7 +12,7 @@ Desenvolver um sistema integrado para gestão de uma oficina mecânica, automati
 O projeto faz parte de um desafio de pós-graduação, com o objetivo de propor uma solução tecnológica que resolva os principais gargalos operacionais de oficinas mecânicas, como retrabalho, perda de informações, demora no atendimento e falta de rastreabilidade. O sistema foi concebido para ser um MVP (Produto Mínimo Viável), mas já contempla os principais fluxos de negócio reais do segmento.
 
 ### Visão Geral
-O sistema cobre todo o ciclo de vida de uma ordem de serviço, desde o cadastro do cliente e do veículo, passando pela geração de orçamento, aprovação, execução, controle de peças e serviços, até o pagamento e entrega do veículo. Inclui autenticação segura, integração com serviços externos (ex: ViaCEP, gateway de pagamento), documentação automática da API e arquitetura baseada em DDD (Domain-Driven Design) com separação clara de camadas.
+O sistema cobre todo o ciclo de vida de uma ordem de serviço, desde o cadastro do cliente e do veículo, passando pela geração de orçamento, aprovação, execução, controle de peças e serviços, até o pagamento e entrega do veículo. Inclui autenticação segura, integração com serviços externos (ex: ViaCEP, gateway de pagamento), documentação automática da API e arquitetura baseada em Clean Architecture, DDD (Domain-Driven Design) e Ports and Adapters.
 
 Principais benefícios esperados:
 - Redução de erros e retrabalho
@@ -94,12 +94,19 @@ Principais benefícios esperados:
 - **RNF06:** O sistema deve permitir integração com sistemas externos (ex: consulta de CEP, gateway de pagamento).
 - **RNF07:** O sistema deve suportar múltiplos usuários simultâneos sem perda de desempenho.
 - **RNF08:** O sistema deve registrar e tratar exceções de forma centralizada, retornando mensagens amigáveis ao usuário.
+- **RNF08a:** O sistema deve retornar payloads de erro sanitizados, sem expor `path`, `error`, `exception`, `trace` ou `message` em respostas padrão de erro, mantendo detalhes técnicos apenas em logs internos.
 - **RNF09:** O sistema deve ser facilmente testável, com cobertura de testes automatizados para as principais funcionalidades.
 - **RNF10:** O sistema deve ser compatível com bancos de dados relacionais (ex: PostgreSQL).
 - **RNF11:** O sistema deve ser implantável em ambiente Docker.
 - **RNF12:** O tempo de resposta para operações críticas (cadastro, consulta, atualização) deve ser inferior a 2 segundos.
 - **RNF13:** O sistema deve estar disponível pelo menos 99% do tempo durante o horário comercial.
 - **RNF14:** A API deve ser consumível por qualquer cliente HTTP (navegadores, ferramentas como Postman, aplicações móveis). Interface web não faz parte do escopo deste MVP.
+- **RNF15:** O sistema deve ser implantável em Kubernetes, com manifestos versionados no repositório e compatíveis com Amazon EKS.
+- **RNF16:** A infraestrutura de nuvem deve ser provisionada por Terraform, contemplando recursos AWS necessários para execução da aplicação, como VPC, subnets, Security Groups, EKS, ECR, RDS PostgreSQL, IAM e backend remoto de state.
+- **RNF17:** O state remoto do Terraform deve ser armazenado em bucket Amazon S3 criado ou garantido antes da infraestrutura principal, permitindo execução reprodutível de `plan`, `apply` e `destroy`.
+- **RNF18:** O deploy da infraestrutura e da aplicação deve poder ser automatizado por GitHub Actions, usando pipelines separadas para infraestrutura e aplicação, evitando que commits de código executem `terraform apply` automaticamente.
+- **RNF19:** Credenciais e dados sensíveis não devem ser versionados no repositório; devem ser fornecidos por GitHub Secrets, variáveis de ambiente, Kubernetes Secrets ou mecanismos equivalentes.
+- **RNF20:** O ambiente em nuvem deve permitir destruição controlada dos recursos provisionados para redução de custos, respeitando a ordem entre recursos Kubernetes, infraestrutura principal e backend remoto do Terraform.
 
 
 ## 4. Restrições
@@ -163,16 +170,16 @@ Exemplos de critérios para requisitos principais:
 
 | Requisito | Caso de Uso / Endpoint / Classe Relacionada |
 |-----------|--------------------------------------------|
-| RF01      | POST /api/clientes, ClienteController, ClienteService |
-| RF06      | POST /api/veiculos, VeiculoController, VeiculoService |
-| RF12      | POST /api/pecas, PecaController, PecaService |
-| RF19      | POST /api/servicos, ServicoController, ServicoService |
-| RF24      | POST /api/ordens-servico, OrdemDeServicoController, OrdemDeServicoService |
-| RF28      | GET /api/ordens-servico/numero/{numero}/status (público), GET /api/ordens-servico/{id}/status (autenticado), OrdemDeServicoController, OrdemServicoResponse.mecanicoNome |
+| RF01      | POST /api/clientes, ClienteController, CriarClienteInputPort, CriarClienteUseCase, ClienteRepositoryPort, ClientePersistenceAdapter |
+| RF06      | POST /api/veiculos, VeiculoController, CriarVeiculoInputPort, CriarVeiculoUseCase, VeiculoRepositoryPort, VeiculoPersistenceAdapter |
+| RF12      | POST /api/pecas, PecaController, CriarPecaInputPort, CriarPecaUseCase, PecaRepositoryPort, PecaPersistenceAdapter |
+| RF19      | POST /api/servicos, ServicoController, CriarServicoInputPort, CriarServicoUseCase, ServicoRepositoryPort, ServicoPersistenceAdapter |
+| RF24      | POST /api/ordens-servico, POST /api/ordens-servico/completa, OrdemDeServicoController, CriarOrdemServicoInputPort, CriarOrdemServicoCompletaInputPort, CriarOrdemServicoCompletaUseCase, OrdemDeServicoUseCase, OrdemDeServicoRepositoryPort, OrdemDeServicoPersistenceAdapter |
+| RF28      | GET /api/ordens-servico/numero/{numero}/status (público), GET /api/ordens-servico/{id}/status (autenticado), OrdemDeServicoController, ConsultarStatusOrdemServicoInputPort, OrdemDeServicoUseCase, OrdemServicoResponse.mecanicoNome |
 | RF39      | GET /api/ordens-servico/fila, ListarFilaOrdensServicoInputPort, OrdemDeServicoRepositoryPort.listarFilaOperacional, SpringDataOrdemDeServicoRepository.findFilaOperacional |
 | RF40      | POST /api/ordens-servico/{id}/orcamento/notificar-cliente, POST /api/orcamentos/decisoes-cliente/{token}/aprovar, POST /api/orcamentos/decisoes-cliente/{token}/recusar, OrcamentoDecisaoClienteUseCase, OrcamentoDecisaoClienteRepositoryPort, EmailNotificacaoPort, TokenSeguroPort |
 | RF41      | NotificarStatusOrdemServicoInputPort, NotificarStatusOrdemServicoUseCase, EmailNotificacaoPort, LogEmailNotificacaoAdapter, SmtpEmailNotificacaoAdapter, DisabledEmailNotificacaoAdapter |
-| RF30, RF31 | POST /api/auth/login, POST /api/auth/registro, AuthController, JwtService |
+| RF30, RF31 | POST /api/auth/login, POST /api/auth/registro, AuthController, AutenticarLoginInputPort, AutenticarLoginUseCase, RegistrarUsuarioInputPort, RegistrarUsuarioUseCase, UsuarioRepositoryPort, TokenProviderPort, PasswordHasherPort, JwtTokenProviderAdapter, PasswordHasherAdapter |
 | RF38      | SecurityConfig (AntPathRequestMatcher + RBAC), PerfilUsuario, @PreAuthorize nos controllers, V13 migration (usuários de demonstração) |
 
 

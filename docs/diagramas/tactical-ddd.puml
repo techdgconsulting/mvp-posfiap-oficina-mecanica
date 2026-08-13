@@ -77,13 +77,18 @@ package "BC Atendimento  <<Core Subdomain>>" #D5E8D4 {
     + excluir(id : Long)
   }
 
+  interface BuscarEnderecoPorCepPort <<Port>> {
+    + buscarPorCep(cep : String) : Optional<EnderecoResult>
+  }
+
   Cliente *-- CpfCnpj : <<embeds>>
   Veiculo *-- Placa    : <<embeds>>
   Veiculo --> Cliente  : pertence a (ManyToOne)
+  Cliente ..> BuscarEnderecoPorCepPort : consulta endereco
 
   note bottom of Cliente
-    Consulta CEP por BuscarEnderecoPorCepPort
-    implementada por ViaCepEnderecoAdapter <<ACL>>
+    BuscarEnderecoPorCepPort implementada por
+    ViaCepEnderecoAdapter <<ACL>>
     (adapters/out/viacep)
     usando ViaCepClient em infrastructure/client
   end note
@@ -323,12 +328,38 @@ package "BC Orçamento  <<Core Subdomain>>" #FFF2CC {
     + rejeitar()
   }
 
+  class OrcamentoDecisaoCliente <<Entity>> {
+    - id : Long
+    - orcamentoId : Long
+    - ordemServicoId : Long
+    - tokenHash : String
+    - status : StatusDecisaoCliente
+    - dataCriacao : LocalDateTime
+    - dataExpiracao : LocalDateTime
+    - dataDecisao : LocalDateTime
+    - emailDestino : String
+    ..
+    + static criar(orcamentoId : Long, ordemServicoId : Long, tokenHash : String, emailDestino : String, dataExpiracao : LocalDateTime) : OrcamentoDecisaoCliente
+    + aprovar()
+    + recusar()
+    + expirar()
+    + estaExpirada() : boolean
+    + estaPendente() : boolean
+  }
+
   enum StatusOrcamento {
      PENDENTE
      ENVIADO
      APROVADO
      REJEITADO
      EXPIRADO
+  }
+
+  enum StatusDecisaoCliente {
+    PENDENTE
+    APROVADA
+    RECUSADA
+    EXPIRADA
   }
 
   interface OrcamentoRepositoryPort <<Port>> {
@@ -338,7 +369,32 @@ package "BC Orçamento  <<Core Subdomain>>" #FFF2CC {
     + buscarAtivoByOrdemDeServico(ordemDeServicoId : Long) : Optional<Orcamento>
   }
 
+  interface OrcamentoDecisaoClienteRepositoryPort <<Port>> {
+    + salvar(decisao : OrcamentoDecisaoCliente) : OrcamentoDecisaoCliente
+    + buscarPorTokenHash(tokenHash : String) : Optional<OrcamentoDecisaoCliente>
+    + listarPorOrcamentoEStatus(orcamentoId : Long, status : StatusDecisaoCliente) : List<OrcamentoDecisaoCliente>
+  }
+
+  interface EmailNotificacaoPort <<Port>> {
+    + enviar(mensagem : EmailNotificacao)
+  }
+
+  class EmailNotificacao <<Value Object>> {
+    - destinatario : String
+    - assunto : String
+    - corpo : String
+  }
+
+  interface TokenSeguroPort <<Port>> {
+    + gerarToken() : String
+    + gerarHash(token : String) : String
+  }
+
   Orcamento --> StatusOrcamento : usa
+  OrcamentoDecisaoCliente --> StatusDecisaoCliente : usa
+  OrcamentoDecisaoCliente --> Orcamento : referencia por id
+  OrcamentoDecisaoClienteRepositoryPort ..> OrcamentoDecisaoCliente : persiste
+  EmailNotificacaoPort ..> EmailNotificacao : envia
 }
 
 ' ─────────────────────────────────────────────────────────────────────────────
@@ -414,7 +470,22 @@ package "BC Catálogo de Serviços  <<Supporting Subdomain>>" #F8CECC {
 ' ─────────────────────────────────────────────────────────────────────────────
 package "BC Financeiro  <<Supporting Subdomain>>" #D0E0FF {
   interface PagamentoGatewayPort <<Port>> {
-    + processar(...)
+    + processar(request : GatewayRequest) : GatewayResponse
+  }
+
+  class GatewayRequest <<DTO>> {
+    - ordemServicoId : Long
+    - valor : BigDecimal
+    - metodo : MetodoPagamento
+  }
+
+  class GatewayResponse <<DTO>> {
+    - aprovado : boolean
+    - transactionId : String
+    - mensagem : String
+    ..
+    + static aprovado(transactionId : String, mensagem : String) : GatewayResponse
+    + static recusado(transactionId : String, mensagem : String) : GatewayResponse
   }
 
 
@@ -455,6 +526,8 @@ package "BC Financeiro  <<Supporting Subdomain>>" #D0E0FF {
 
   Pagamento --> StatusPagamento  : usa
   Pagamento --> MetodoPagamento  : usa
+  PagamentoGatewayPort ..> GatewayRequest : recebe
+  PagamentoGatewayPort ..> GatewayResponse : retorna
 
   note bottom of PagamentoGatewayPort
     Implementado por:
@@ -532,6 +605,52 @@ package "BC Encerramento  <<Supporting Subdomain>>" #FFE6CC {
 }
 
 ' ─────────────────────────────────────────────────────────────────────────────
+' BC AUTENTICAÇÃO E SEGURANÇA — Generic Subdomain
+' ─────────────────────────────────────────────────────────────────────────────
+package "BC Autenticação e Segurança  <<Generic Subdomain>>" #FFE0FF {
+
+  class Usuario <<Aggregate Root>> {
+    - id : Long
+    - username : String
+    - password : String
+    - perfil : PerfilUsuario
+    ..
+    + static criar(username : String, password : String, role : String) : Usuario
+    + getRole() : String
+  }
+
+  enum PerfilUsuario {
+    ATENDENTE
+    MECANICO
+    GESTOR
+    ..
+    + static from(valor : String) : PerfilUsuario
+    + static isValido(valor : String) : boolean
+  }
+
+  interface UsuarioRepositoryPort <<Port>> {
+    + salvar(usuario : Usuario) : Usuario
+    + buscarPorUsername(username : String) : Optional<Usuario>
+    + existePorUsername(username : String) : boolean
+  }
+
+  interface PasswordHasherPort <<Port>> {
+    + hash(rawPassword : String) : String
+    + matches(rawPassword : String, hashedPassword : String) : boolean
+  }
+
+  interface TokenProviderPort <<Port>> {
+    + gerarToken(username : String, role : String) : String
+    + extrairUsername(token : String) : String
+    + extrairRole(token : String) : String
+    + isTokenValido(token : String) : boolean
+  }
+
+  Usuario --> PerfilUsuario : usa
+  UsuarioRepositoryPort ..> Usuario : persiste
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
 ' LEGENDA
 ' ─────────────────────────────────────────────────────────────────────────────
 legend right
@@ -559,6 +678,10 @@ legend right
   <b>Ordem de Serviço (1) - (N) Orçamento</b>
   · Uma OS pode gerar vários orçamentos
   · Cada orçamento está vinculado a uma única OS
+  ----
+  <b>Orçamento (1) - (N) Decisão do Cliente</b>
+  · Um orçamento pode gerar decisões externas por token
+  · Cada decisão guarda status, expiração e e-mail de destino
   ----
   <b>Ordem de Serviço (1) - (1) Execução</b>
   · Cada OS possui uma única execução
@@ -604,7 +727,7 @@ legend right
   <b>Tipos de Subdomínio</b>
   |<back:#D5E8D4> Core      </back>| Diferencial competitivo — AT, OS, EX, ORC |
   |<back:#D0E0FF> Supporting </back>| Necessário, não diferencial — EST, SVC, FI, EN, EC |
-  |<back:#FFE0FF> Generic    </back>| Solução de mercado — ViaCEP, Gateway Pgto  |
+  |<back:#FFE0FF> Generic    </back>| Suporte transversal — ViaCEP, Gateway Pgto, Auth/JWT |
 endlegend
 
 @enduml

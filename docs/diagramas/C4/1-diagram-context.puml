@@ -17,7 +17,7 @@ title Diagrama de Contexto — Sistema Oficina Mecânica DGCAR[C4 — Nível 1]
 Person(atendente, "Atendente", "Perfil ATENDENTE. Cria OS, gera orçamentos, registra pagamentos, entrega veículo, gerencia clientes e veículos.")
 Person(mecanico, "Mecânico", "Perfil MECANICO. Inicia diagnóstico, adiciona itens (peças/serviços) e finaliza o serviço.")
 Person(gestor, "Gestor", "Perfil GESTOR. Acesso completo: tudo do Atendente e Mecânico + CRUD peças/serviços + KPIs.")
-Person(cliente, "Cliente", "Proprietário do veículo. Consulta o status da OS sem login. A aprovação ou rejeição do orçamento é registrada por perfil autorizado no sistema.")
+Person(cliente, "Cliente", "Proprietário do veículo. Consulta o status da OS sem login e aprova ou recusa orçamento por link público com token.")
 
 ' ─── SISTEMA PRINCIPAL ────────────────────────────────────────────────────────
 System(oficina, "Sistema de Gestão de Oficina Mecânica", "Gerencia o ciclo completo: cadastro de clientes e veículos, abertura de OS, diagnóstico, orçamento, execução, pagamento, entrega e encerramento.")
@@ -25,13 +25,16 @@ System(oficina, "Sistema de Gestão de Oficina Mecânica", "Gerencia o ciclo com
 ' ─── SISTEMAS EXTERNOS ────────────────────────────────────────────────────────
 System_Ext(viacep, "ViaCEP API", "Serviço público brasileiro. Retorna logradouro, bairro, cidade e UF a partir de um CEP informado.")
 System_Ext(gateway, "Gateway de Pagamento", "Processa e autoriza pagamentos. Recebe método e valor; retorna aprovação ou recusa com código de transação. No projeto, a integração é representada por adapter simulável.")
+System_Ext(smtpServer, "Servidor SMTP", "Infraestrutura externa usada para envio real de e-mails de orçamento e status da OS quando OFICINA_EMAIL_MODE=SMTP.")
 
 ' ─── RELACIONAMENTOS ──────────────────────────────────────────────────────────
 Rel(atendente, oficina, "Cria OS, gera orçamentos, registra pagamentos, gerencia clientes e veículos", "JSON/HTTPS")
 Rel(mecanico, oficina, "Inicia diagnóstico, adiciona itens, finaliza serviço", "JSON/HTTPS")
 Rel(gestor, oficina, "Acesso completo: CRUD peças/serviços, KPIs, todas as operações", "JSON/HTTPS")
-Rel(cliente, oficina, "Consulta status da OS pelo número sem login. Aprovação/rejeição é registrada por perfil autorizado", "JSON/HTTPS")
+Rel(cliente, oficina, "Consulta status da OS pelo número e aprova/recusa orçamento por token, sem login", "JSON/HTTPS")
 Rel(oficina, viacep, "Consulta endereço por CEP ao cadastrar/editar cliente", "HTTP GET")
 Rel(oficina, gateway, "Envia valor e método; recebe aprovação ou recusa", "HTTPS")
+Rel(oficina, smtpServer, "Envia notificações de orçamento e status da OS", "SMTP")
+Rel(smtpServer, cliente, "Entrega e-mails com links de decisão e atualizações de status", "E-mail")
 
 @enduml

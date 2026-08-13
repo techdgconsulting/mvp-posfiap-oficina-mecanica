@@ -54,7 +54,8 @@ O endpoint `POST /api/auth/registro` valida o campo `role` em dois níveis:
 | `TokenProviderPort` | Contrato de aplicação para gerar, validar e extrair claims do token |
 | `JwtTokenProviderAdapter` | Adapter de saída que usa JJWT para assinar e validar tokens |
 | `JwtAuthenticationFilter` | Filtro `OncePerRequestFilter` que lê o Bearer token, valida o JWT e popula o `SecurityContext` |
-| `SecurityConfig` | Define política stateless, rotas públicas, RBAC por endpoint e handlers 401/403 |
+| `SecurityConfig` | Define política stateless, rotas públicas, RBAC por endpoint e handlers 401/403 com JSON sanitizado |
+| `SanitizedErrorController` | Substitui o erro padrão do Spring Boot em `/error`, preservando status HTTP e removendo campos sensíveis do payload |
 | `PasswordHasherPort` / `PasswordHasherAdapter` | Contrato e adapter BCrypt para hash de senha |
 
 ## Alternativas Consideradas
@@ -79,15 +80,25 @@ O endpoint `POST /api/auth/registro` valida o campo `role` em dois níveis:
 
 ---
 
-## Nota de Implementação — Tomcat Error Dispatch e o `/error` em `permitAll()`
+## Nota de Implementação — Respostas de erro sanitizadas e o `/error` em `permitAll()`
 
 ### Problema
-O `JwtAuthenticationFilter` estende `OncePerRequestFilter`. Ao processar um request normal (ex: `GET /api/pecas` com perfil insuficiente), o filtro JWT executa e autentica o usuário. O `AccessDeniedHandler` do Spring Security então chama `response.sendError(403)`, que faz o **Tomcat abrir um segundo dispatch interno** para `GET /error` (tipo `ERROR`).
+O `JwtAuthenticationFilter` estende `OncePerRequestFilter`. Em respostas de segurança e erro, o erro padrão do Spring Boot/Tomcat pode expor metadados como `path`, `error`, `exception`, `trace` ou `message`. Esses campos não são necessários para o consumidor da API e podem gerar alertas de divulgação de informações em varreduras OWASP/ZAP.
 
-Nesse segundo dispatch, o `OncePerRequestFilter` detecta que o request já foi filtrado (via atributo interno `FILTERED`) e **pula a execução do filtro JWT**, resultando em `SecurityContext` vazio (usuário anônimo). Se `/error` não estiver em `permitAll()`, a regra `anyRequest().authenticated()` rejeita o anônimo com um novo `sendError(401)` — e o cliente recebe **401 em vez de 403**.
+Também existe um cuidado específico com o dispatch interno para `/error`: se esse endpoint não estiver liberado, um erro originalmente `403` pode ser reprocessado como request anônimo e acabar sobrescrito por `401`.
 
 ### Solução
-O `SecurityConfig` declara `/error` explicitamente em `permitAll()` antes de qualquer outra regra:
+O `SecurityConfig` escreve diretamente respostas JSON para `401` e `403`, sem `response.sendError`, usando o contrato sanitizado:
+
+```json
+{
+  "timestamp": "2026-08-13T09:29:26",
+  "status": 403,
+  "erro": "Acesso negado"
+}
+```
+
+O endpoint `/error` continua explicitamente em `permitAll()` antes de qualquer outra regra:
 
 ```java
 var paths = PathPatternRequestMatcher.withDefaults();
@@ -95,5 +106,5 @@ var paths = PathPatternRequestMatcher.withDefaults();
 .requestMatchers(paths.matcher("/error")).permitAll()
 ```
 
-Isso garante que o dispatch de erro do Tomcat seja processado sem autenticação, preservando o status HTTP original (403, 404, etc.) definido pelo handler.
+O `SanitizedErrorController` trata o fallback `/error` e retorna somente `timestamp`, `status` e `erro`. Campos como `path`, `error`, `exception`, `trace` e `message` não são expostos ao cliente. Detalhes técnicos permanecem restritos aos logs internos.
 
