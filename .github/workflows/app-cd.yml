@@ -181,12 +181,28 @@ jobs:
         env:
           IMAGE_URI: ${{ steps.terraform-outputs.outputs.ecr_repository_url }}:${{ github.sha }}
           SPRING_DATASOURCE_URL: ${{ steps.terraform-outputs.outputs.spring_datasource_url }}
+          OFICINA_EMAIL_ENABLED: ${{ vars.OFICINA_EMAIL_ENABLED || secrets.OFICINA_EMAIL_ENABLED || 'false' }}
+          OFICINA_EMAIL_MODE: ${{ vars.OFICINA_EMAIL_MODE || secrets.OFICINA_EMAIL_MODE || 'LOG' }}
+          OFICINA_EMAIL_REMETENTE: ${{ vars.OFICINA_EMAIL_REMETENTE || secrets.OFICINA_EMAIL_REMETENTE || 'no-reply@dgcar.local' }}
+          SMTP_HOST: ${{ vars.SMTP_HOST || secrets.SMTP_HOST || 'localhost' }}
+          SMTP_PORT: ${{ vars.SMTP_PORT || secrets.SMTP_PORT || '587' }}
+          SMTP_AUTH: ${{ vars.SMTP_AUTH || secrets.SMTP_AUTH || 'true' }}
+          SMTP_STARTTLS_ENABLE: ${{ vars.SMTP_STARTTLS_ENABLE || secrets.SMTP_STARTTLS_ENABLE || 'true' }}
+          MANAGEMENT_HEALTH_MAIL_ENABLED: ${{ vars.MANAGEMENT_HEALTH_MAIL_ENABLED || secrets.MANAGEMENT_HEALTH_MAIL_ENABLED || 'false' }}
         run: |
           IMAGE_REPOSITORY="${IMAGE_URI%:*}"
           IMAGE_TAG="${IMAGE_URI##*:}"
 
           sed -i "s|  SPRING_DATASOURCE_URL: .*|  SPRING_DATASOURCE_URL: \"$SPRING_DATASOURCE_URL\"|g" k8s/configmap.yaml
           sed -i "s|  OFICINA_PUBLIC_BASE_URL: .*|  OFICINA_PUBLIC_BASE_URL: \"http://localhost:8080\"|g" k8s/configmap.yaml
+          sed -i "s|  OFICINA_EMAIL_ENABLED: .*|  OFICINA_EMAIL_ENABLED: \"$OFICINA_EMAIL_ENABLED\"|g" k8s/configmap.yaml
+          sed -i "s|  OFICINA_EMAIL_MODE: .*|  OFICINA_EMAIL_MODE: \"$OFICINA_EMAIL_MODE\"|g" k8s/configmap.yaml
+          sed -i "s|  OFICINA_EMAIL_REMETENTE: .*|  OFICINA_EMAIL_REMETENTE: \"$OFICINA_EMAIL_REMETENTE\"|g" k8s/configmap.yaml
+          sed -i "s|  SMTP_HOST: .*|  SMTP_HOST: \"$SMTP_HOST\"|g" k8s/configmap.yaml
+          sed -i "s|  SMTP_PORT: .*|  SMTP_PORT: \"$SMTP_PORT\"|g" k8s/configmap.yaml
+          sed -i "s|  SMTP_AUTH: .*|  SMTP_AUTH: \"$SMTP_AUTH\"|g" k8s/configmap.yaml
+          sed -i "s|  SMTP_STARTTLS_ENABLE: .*|  SMTP_STARTTLS_ENABLE: \"$SMTP_STARTTLS_ENABLE\"|g" k8s/configmap.yaml
+          sed -i "s|  MANAGEMENT_HEALTH_MAIL_ENABLED: .*|  MANAGEMENT_HEALTH_MAIL_ENABLED: \"$MANAGEMENT_HEALTH_MAIL_ENABLED\"|g" k8s/configmap.yaml
           sed -i "s|    newName: .*|    newName: $IMAGE_REPOSITORY|g" k8s/kustomization.yaml
           sed -i "s|    newTag: .*|    newTag: $IMAGE_TAG|g" k8s/kustomization.yaml
 
