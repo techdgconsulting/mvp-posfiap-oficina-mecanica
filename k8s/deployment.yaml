@@ -19,6 +19,8 @@ spec:
       app.kubernetes.io/name: oficina-api
   template:
     metadata:
+      annotations:
+        cd-demo.oficina-dgcar/trigger: "2026-08-17-01"
       labels:
         app.kubernetes.io/name: oficina-api
         app.kubernetes.io/part-of: oficina-mecanica-dgcar
