@@ -174,5 +174,7 @@ A aplicação foi preparada para evoluir de um ambiente local para uma execuçã
 
 **Consequencia:** antes do `terraform destroy`, a pipeline consulta o `vpc_id` no state remoto, remove recursos Kubernetes, aguarda Load Balancers e ENIs gerenciadas por `amazon-elb` serem removidos e exclui security groups orfaos com prefixo `k8s-elb-*`. Isso reduz falhas intermitentes no teardown e evita limpeza manual no Console AWS.
 
+Como o destroy remove o namespace Kubernetes `oficina`, tambem sao removidos `ConfigMap` e `Secret` vivos no cluster. Portanto, o deploy da aplicacao nao deve depender de ajustes manuais persistidos no EKS. A esteira `app-cd.yml` deve recriar as configuracoes necessarias a partir de GitHub Secrets e Repository Variables, incluindo credenciais SMTP no `Secret` e configuracoes nao sensiveis de e-mail no `ConfigMap`.
+
 ## Resumo
 A infraestrutura foi definida para ser segura, reprodutível, automatizada e compatível com uma execução real em AWS. As decisões priorizam a separação entre estado, configuração, deploy e segredos, além de reduzir riscos operacionais e custos. Esse conjunto de escolhas torna a aplicação mais adequada para o objetivo acadêmico, validação técnica e evolução futura.
