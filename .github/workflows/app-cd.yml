@@ -169,6 +169,11 @@ jobs:
           SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME:-$DB_USERNAME}"
           SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD:-$DB_PASSWORD}"
 
+          if [ -z "$SMTP_USERNAME" ] || [ -z "$SMTP_PASSWORD" ]; then
+            echo "::error::SMTP_USERNAME and SMTP_PASSWORD secrets are required for the application CD deploy."
+            exit 1
+          fi
+
           kubectl create secret generic oficina-api-secret -n "$K8S_NAMESPACE" \
             --from-literal=SPRING_DATASOURCE_USERNAME="$SPRING_DATASOURCE_USERNAME" \
             --from-literal=SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD" \
@@ -181,10 +186,10 @@ jobs:
         env:
           IMAGE_URI: ${{ steps.terraform-outputs.outputs.ecr_repository_url }}:${{ github.sha }}
           SPRING_DATASOURCE_URL: ${{ steps.terraform-outputs.outputs.spring_datasource_url }}
-          OFICINA_EMAIL_ENABLED: ${{ vars.OFICINA_EMAIL_ENABLED || secrets.OFICINA_EMAIL_ENABLED || 'false' }}
-          OFICINA_EMAIL_MODE: ${{ vars.OFICINA_EMAIL_MODE || secrets.OFICINA_EMAIL_MODE || 'LOG' }}
+          OFICINA_EMAIL_ENABLED: ${{ vars.OFICINA_EMAIL_ENABLED || secrets.OFICINA_EMAIL_ENABLED || 'true' }}
+          OFICINA_EMAIL_MODE: ${{ vars.OFICINA_EMAIL_MODE || secrets.OFICINA_EMAIL_MODE || 'SMTP' }}
           OFICINA_EMAIL_REMETENTE: ${{ vars.OFICINA_EMAIL_REMETENTE || secrets.OFICINA_EMAIL_REMETENTE || 'no-reply@dgcar.local' }}
-          SMTP_HOST: ${{ vars.SMTP_HOST || secrets.SMTP_HOST || 'localhost' }}
+          SMTP_HOST: ${{ vars.SMTP_HOST || secrets.SMTP_HOST || 'sandbox.smtp.mailtrap.io' }}
           SMTP_PORT: ${{ vars.SMTP_PORT || secrets.SMTP_PORT || '587' }}
           SMTP_AUTH: ${{ vars.SMTP_AUTH || secrets.SMTP_AUTH || 'true' }}
           SMTP_STARTTLS_ENABLE: ${{ vars.SMTP_STARTTLS_ENABLE || secrets.SMTP_STARTTLS_ENABLE || 'true' }}
