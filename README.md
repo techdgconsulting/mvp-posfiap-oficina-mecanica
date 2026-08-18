@@ -771,6 +771,21 @@ SMTP_USERNAME
 SMTP_PASSWORD
 ```
 
+Para envio real de e-mails pela esteira de aplicacao, configure tambem estas variaveis como **Repository Variables** ou **Repository Secrets**. A pipeline `app-cd.yml` usa esses valores para preparar o `ConfigMap` aplicado no EKS:
+
+```text
+OFICINA_EMAIL_ENABLED=true
+OFICINA_EMAIL_MODE=SMTP
+OFICINA_EMAIL_REMETENTE=no-reply@dgcar.local
+SMTP_HOST=sandbox.smtp.mailtrap.io
+SMTP_PORT=587
+SMTP_AUTH=true
+SMTP_STARTTLS_ENABLE=true
+MANAGEMENT_HEALTH_MAIL_ENABLED=false
+```
+
+`SMTP_USERNAME` e `SMTP_PASSWORD` devem permanecer como **Repository Secrets**, pois sao credenciais sensiveis. Se esses secrets estiverem cadastrados como **Environment secrets**, garanta que o job da pipeline declare o `environment` correspondente; caso contrario, o GitHub Actions nao disponibiliza os valores para o workflow.
+
 Valores esperados para este projeto:
 
 ```text
@@ -1216,8 +1231,8 @@ Existe uma diferença importante entre duas coisas parecidas:
 7. A pipeline publica a imagem no Amazon ECR.
 8. A pipeline atualiza o `kubeconfig` do EKS.
 9. A pipeline cria ou atualiza o namespace Kubernetes.
-10. A pipeline cria ou atualiza o `Secret` da aplicação.
-11. A pipeline prepara `ConfigMap` e `kustomization.yaml` com os outputs da infraestrutura.
+10. A pipeline cria ou atualiza o `Secret` da aplicação, incluindo credenciais sensiveis de banco, JWT e SMTP.
+11. A pipeline prepara `ConfigMap` e `kustomization.yaml` com os outputs da infraestrutura e com as configuracoes nao sensiveis de e-mail (`OFICINA_EMAIL_ENABLED`, `OFICINA_EMAIL_MODE`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_AUTH`, `SMTP_STARTTLS_ENABLE`).
 12. A pipeline aplica os manifestos com `kubectl apply -k k8s`.
 13. A pipeline atualiza a imagem do Deployment `oficina-api`.
 14. A pipeline aguarda o rollout dos pods.
@@ -1341,6 +1356,14 @@ docker compose logs -f app
 ```
 
 No Postman, importe a collection completa em [`postman`](./postman) e execute a pasta `TechChallengeFase2 > Fluxo Completo + Notificação por E-mail + Aprovação + Consulta de Status + Fila de OSs`. Antes de rodar a pasta, ajuste a variável de collection `emailClienteNotificacao` para o e-mail que deve aparecer no provedor SMTP/Mailtrap.
+
+Se estiver usando Mailtrap Sandbox no plano gratuito, confira em **Billing > Sandbox Plans** o item `Sending rate limits per 10 sec`. No plano gratuito observado durante a validacao, o limite era de 1 e-mail a cada 10 segundos por sandbox. Como a collection dispara varias notificacoes em sequencia (`RECEBIDA`, `EM_DIAGNOSTICO`, `AGUARDANDO_APROVACAO`, e-mail de orcamento e demais transicoes), configure o Postman Runner com delay de pelo menos `15000 ms` entre requests. Delays menores podem gerar erro SMTP:
+
+```text
+550 5.7.0 Too many emails per second. Please upgrade your plan
+```
+
+Quando esse limite e atingido, notificacoes informativas de status podem aparecer nos logs como `NOTIFICACAO_STATUS_OS_FALHOU` sem bloquear a transicao da OS. Ja o endpoint de notificacao de orcamento pode retornar `500`, pois o envio do e-mail com links de decisao faz parte da resposta esperada desse fluxo.
 
 
 ### Sem Docker (perfil dev com H2)

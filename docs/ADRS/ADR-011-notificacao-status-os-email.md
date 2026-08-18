@@ -74,6 +74,16 @@ SMTP_AUTH=true
 SMTP_STARTTLS_ENABLE=true
 ```
 
+Em ambiente AWS via GitHub Actions, `SMTP_USERNAME` e `SMTP_PASSWORD` devem ser tratados como GitHub Secrets e aplicados no Kubernetes `Secret`. As demais configuracoes SMTP nao sensiveis podem ser mantidas como Repository Variables ou Secrets e sao aplicadas no `ConfigMap` durante a esteira de deploy da aplicacao.
+
+Para demonstracoes com Mailtrap Sandbox, considerar o limite operacional do plano usado. No plano gratuito validado, o limite era de 1 e-mail a cada 10 segundos por sandbox. A collection Postman deve usar delay suficiente entre requests que disparam e-mail, recomendado `15000 ms` ou maior, para evitar o erro SMTP:
+
+```text
+550 5.7.0 Too many emails per second. Please upgrade your plan
+```
+
+Quando esse limite e atingido, notificacoes de status podem falhar sem bloquear a transicao da OS, por decisao desta ADR. Fluxos em que o e-mail faz parte da resposta esperada, como notificacao de orcamento com links de decisao, podem retornar erro HTTP se o provedor SMTP recusar o envio.
+
 ## Status Notificados
 
 - `RECEBIDA`
